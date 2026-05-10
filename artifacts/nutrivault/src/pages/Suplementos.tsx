@@ -1,22 +1,25 @@
 import { Layout } from "@/components/layout/Layout";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Pill, Check } from "lucide-react";
 
 export default function Suplementos() {
+  const { user } = useAuth();
   const [supplements, setSupplements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!supabase || !user) { setLoading(false); return; }
     async function load() {
-      if (!supabase) {
-        setLoading(false);
-        return;
-      }
       try {
-        const { data } = await supabase.from("suplementos").select("*").order("nombre");
+        const { data } = await supabase!
+          .from("suplementos")
+          .select("*")
+          .eq("usuario_id", user!.id)
+          .order("nombre");
         if (data) setSupplements(data);
       } catch {
         // show empty state
@@ -25,7 +28,7 @@ export default function Suplementos() {
       }
     }
     load();
-  }, []);
+  }, [user]);
 
   return (
     <Layout>
@@ -42,9 +45,7 @@ export default function Suplementos() {
 
         {loading ? (
           <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="animate-pulse h-20 bg-muted" />
-            ))}
+            {[1, 2, 3].map((i) => <Card key={i} className="animate-pulse h-20 bg-muted" />)}
           </div>
         ) : supplements.length === 0 ? (
           <Card className="border-dashed">
@@ -59,7 +60,7 @@ export default function Suplementos() {
         ) : (
           <div className="grid gap-4">
             {supplements.map((sup) => (
-              <Card key={sup.id} className={sup.activo ? "border-primary/50" : "opacity-60"} data-testid={`card-supplement-${sup.id}`}>
+              <Card key={sup.id} className={sup.activo ? "border-primary/30" : "opacity-60"} data-testid={`card-supplement-${sup.id}`}>
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className={`h-10 w-10 rounded-full flex items-center justify-center ${sup.activo ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
@@ -71,7 +72,7 @@ export default function Suplementos() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className={`text-xs px-2 py-1 rounded-full ${sup.activo ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-secondary text-secondary-foreground"}`}>
+                    <span className={`text-xs px-2 py-1 rounded-full ${sup.activo ? "bg-green-100 text-green-800" : "bg-secondary text-secondary-foreground"}`}>
                       {sup.activo ? "Activo" : "Inactivo"}
                     </span>
                     {sup.activo && (

@@ -1,47 +1,46 @@
 import { Layout } from "@/components/layout/Layout";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShoppingBasket, BookOpen, Pill, Trophy } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 export default function Dashboard() {
-  const [username, setUsername] = useState("Usuario");
-  const [stats, setStats] = useState({
-    despensa: 0,
-    recetas: 0,
-    suplementos: 0,
-    puntos: 0,
-  });
+  const { user } = useAuth();
+  const [nombre, setNombre] = useState("Usuario");
+  const [stats, setStats] = useState({ despensa: 0, recetas: 0, suplementos: 0, puntos: 0 });
 
   useEffect(() => {
-    async function loadData() {
-      if (!supabase) return;
+    if (!supabase || !user) return;
 
+    async function loadData() {
       try {
-        const { data: authData } = await supabase.auth.getUser();
-        if (authData?.user?.email) {
-          const name = authData.user.user_metadata?.name || authData.user.email.split("@")[0];
-          setUsername(name);
-        }
+        const { data: perfil } = await supabase!
+          .from("usuarios")
+          .select("nombre")
+          .eq("id", user!.id)
+          .single();
+        if (perfil?.nombre) setNombre(perfil.nombre);
+        else if (user!.email) setNombre(user!.email.split("@")[0]);
       } catch {
-        // ignore auth errors
+        if (user!.email) setNombre(user!.email.split("@")[0]);
       }
 
       try {
         const [despensaRes, recetasRes, suplementosRes, puntosRes] = await Promise.all([
-          supabase.from("ingredientes").select("*", { count: "exact", head: true }),
-          supabase.from("recetas").select("*", { count: "exact", head: true }),
-          supabase.from("suplementos").select("*", { count: "exact", head: true }).eq("activo", true),
-          supabase.from("vista_puntos_totales").select("*"),
+          supabase!.from("ingredientes").select("*", { count: "exact", head: true }).eq("usuario_id", user!.id),
+          supabase!.from("recetas").select("*", { count: "exact", head: true }),
+          supabase!.from("suplementos").select("*", { count: "exact", head: true }).eq("activo", true).eq("usuario_id", user!.id),
+          supabase!.from("vista_puntos_totales").select("*").eq("usuario_id", user!.id),
         ]);
 
+        const viewRow = puntosRes.data?.[0];
         const totalPuntos =
-          puntosRes.data?.[0]?.total_puntos ??
-          puntosRes.data?.[0]?.total ??
-          puntosRes.data?.[0]?.puntos ??
-          puntosRes.data?.reduce((acc: number, curr: any) => acc + (curr.puntos || curr.points || 0), 0) ??
+          viewRow?.total_puntos ??
+          viewRow?.total ??
+          viewRow?.puntos ??
           0;
 
         setStats({
@@ -51,12 +50,12 @@ export default function Dashboard() {
           puntos: totalPuntos,
         });
       } catch {
-        // show zeros on error
+        // keep zeros
       }
     }
 
     loadData();
-  }, []);
+  }, [user]);
 
   const today = format(new Date(), "EEEE, d 'de' MMMM", { locale: es });
 
@@ -65,7 +64,7 @@ export default function Dashboard() {
       <div className="space-y-8">
         <header>
           <h1 className="text-3xl font-bold text-foreground capitalize" data-testid="dashboard-welcome">
-            Hola, {username}
+            Hola, {nombre}
           </h1>
           <p className="text-muted-foreground mt-1 capitalize" data-testid="dashboard-date">
             {today}
@@ -84,21 +83,15 @@ export default function Dashboard() {
 }
 
 function StatCard({
-  title,
-  value,
-  icon: Icon,
-  testId,
+  title, value, icon: Icon, testId,
 }: {
-  title: string;
-  value: number;
-  icon: React.ElementType;
-  testId: string;
+  title: string; value: number; icon: React.ElementType; testId: string;
 }) {
   return (
-    <Card className="hover-elevate transition-all duration-200 border-border/50" data-testid={testId}>
+    <Card className="transition-all duration-200 border-border/50 hover:shadow-md" data-testid={testId}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center text-primary">
+        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
           <Icon className="h-4 w-4" />
         </div>
       </CardHeader>

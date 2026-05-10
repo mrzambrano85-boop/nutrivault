@@ -1,23 +1,26 @@
 import { Layout } from "@/components/layout/Layout";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, ShoppingBasket } from "lucide-react";
 
 export default function Despensa() {
+  const { user } = useAuth();
   const [ingredients, setIngredients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!supabase || !user) { setLoading(false); return; }
     async function load() {
-      if (!supabase) {
-        setLoading(false);
-        return;
-      }
       try {
-        const { data } = await supabase.from("ingredientes").select("*").order("nombre");
+        const { data } = await supabase!
+          .from("ingredientes")
+          .select("*")
+          .eq("usuario_id", user!.id)
+          .order("nombre");
         if (data) setIngredients(data);
       } catch {
         // show empty state
@@ -26,7 +29,7 @@ export default function Despensa() {
       }
     }
     load();
-  }, []);
+  }, [user]);
 
   return (
     <Layout>
@@ -48,9 +51,7 @@ export default function Despensa() {
 
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Card key={i} className="animate-pulse h-32 bg-muted" />
-            ))}
+            {[1, 2, 3, 4, 5, 6].map((i) => <Card key={i} className="animate-pulse h-32 bg-muted" />)}
           </div>
         ) : ingredients.length === 0 ? (
           <Card className="border-dashed">
@@ -65,7 +66,7 @@ export default function Despensa() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {ingredients.map((ing) => (
-              <Card key={ing.id} className="hover-elevate transition-all" data-testid={`card-ingredient-${ing.id}`}>
+              <Card key={ing.id} className="hover:shadow-md transition-all" data-testid={`card-ingredient-${ing.id}`}>
                 <CardContent className="p-6">
                   <h3 className="font-semibold text-lg">{ing.nombre || ing.name}</h3>
                   <div className="flex justify-between items-center mt-4 text-sm text-muted-foreground">

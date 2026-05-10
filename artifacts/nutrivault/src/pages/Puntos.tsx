@@ -1,24 +1,23 @@
 import { Layout } from "@/components/layout/Layout";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, Star, TrendingUp } from "lucide-react";
 
 export default function Puntos() {
+  const { user } = useAuth();
   const [pointsHistory, setPointsHistory] = useState<any[]>([]);
   const [totalPoints, setTotalPoints] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!supabase || !user) { setLoading(false); return; }
     async function load() {
-      if (!supabase) {
-        setLoading(false);
-        return;
-      }
       try {
         const [historyRes, totalRes] = await Promise.all([
-          supabase.from("puntos").select("*").order("created_at", { ascending: false }),
-          supabase.from("vista_puntos_totales").select("*"),
+          supabase!.from("puntos").select("*").eq("usuario_id", user!.id).order("created_at", { ascending: false }),
+          supabase!.from("vista_puntos_totales").select("*").eq("usuario_id", user!.id),
         ]);
         if (historyRes.data) setPointsHistory(historyRes.data);
         const viewRow = totalRes.data?.[0];
@@ -36,7 +35,7 @@ export default function Puntos() {
       }
     }
     load();
-  }, []);
+  }, [user]);
 
   return (
     <Layout>
@@ -63,8 +62,8 @@ export default function Puntos() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground flex items-center">
-                <Star className="h-4 w-4 mr-2 text-yellow-500" />
+              <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+                <Star className="h-4 w-4 text-yellow-500" />
                 Nivel Actual
               </CardTitle>
             </CardHeader>
@@ -93,9 +92,7 @@ export default function Puntos() {
           <CardContent>
             {loading ? (
               <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="animate-pulse h-12 bg-muted rounded-md" />
-                ))}
+                {[1, 2, 3].map((i) => <div key={i} className="animate-pulse h-12 bg-muted rounded-md" />)}
               </div>
             ) : pointsHistory.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
@@ -103,16 +100,16 @@ export default function Puntos() {
                 <p>Aún no has ganado puntos. ¡Comienza a registrar tus hábitos!</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {pointsHistory.map((entry) => (
-                  <div key={entry.id} className="flex justify-between items-center p-4 border rounded-lg hover-elevate" data-testid={`row-points-${entry.id}`}>
+                  <div key={entry.id} className="flex justify-between items-center p-4 border rounded-lg hover:bg-muted/30 transition-colors" data-testid={`row-points-${entry.id}`}>
                     <div className="flex items-center gap-4">
                       <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                         <TrendingUp className="h-5 w-5" />
                       </div>
                       <div>
                         <p className="font-medium">{entry.motivo || entry.reason || "Recompensa"}</p>
-                        <p className="text-sm text-muted-foreground">{new Date(entry.created_at).toLocaleDateString()}</p>
+                        <p className="text-sm text-muted-foreground">{new Date(entry.created_at).toLocaleDateString("es-ES")}</p>
                       </div>
                     </div>
                     <div className="font-bold text-lg text-primary">+{entry.puntos ?? entry.points}</div>

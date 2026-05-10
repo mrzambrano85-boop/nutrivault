@@ -10,13 +10,13 @@ export default function Recetas() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!supabase) { setLoading(false); return; }
     async function load() {
-      if (!supabase) {
-        setLoading(false);
-        return;
-      }
       try {
-        const { data } = await supabase.from("recetas").select("*").order("created_at", { ascending: false });
+        const { data } = await supabase!
+          .from("recetas")
+          .select("*")
+          .order("created_at", { ascending: false });
         if (data) setRecipes(data);
       } catch {
         // show empty state
@@ -37,9 +37,7 @@ export default function Recetas() {
 
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="animate-pulse h-64 bg-muted" />
-            ))}
+            {[1, 2, 3].map((i) => <Card key={i} className="animate-pulse h-64 bg-muted" />)}
           </div>
         ) : recipes.length === 0 ? (
           <Card className="border-dashed">
@@ -54,8 +52,8 @@ export default function Recetas() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {recipes.map((recipe) => (
-              <Card key={recipe.id} className="overflow-hidden hover-elevate transition-all flex flex-col" data-testid={`card-recipe-${recipe.id}`}>
-                <div className="h-48 bg-muted w-full relative">
+              <Card key={recipe.id} className="overflow-hidden hover:shadow-md transition-all flex flex-col" data-testid={`card-recipe-${recipe.id}`}>
+                <div className="h-48 bg-muted w-full">
                   {(recipe.imagen_url || recipe.image_url) ? (
                     <img src={recipe.imagen_url || recipe.image_url} alt={recipe.titulo || recipe.title} className="w-full h-full object-cover" />
                   ) : (
@@ -66,7 +64,7 @@ export default function Recetas() {
                 </div>
                 <CardHeader>
                   <CardTitle className="text-xl line-clamp-1">{recipe.titulo || recipe.title}</CardTitle>
-                  <CardDescription className="line-clamp-2 mt-2">{recipe.descripcion || recipe.description}</CardDescription>
+                  <CardDescription className="line-clamp-2 mt-1">{recipe.descripcion || recipe.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="mt-auto pt-4 flex justify-between items-center border-t">
                   <div className="flex items-center text-sm text-muted-foreground">
