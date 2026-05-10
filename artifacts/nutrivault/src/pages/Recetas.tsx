@@ -16,7 +16,7 @@ export default function Recetas() {
         return;
       }
       try {
-        const { data } = await supabase.from("recipes").select("*").order("created_at", { ascending: false });
+        const { data } = await supabase.from("recetas").select("*").order("created_at", { ascending: false });
         if (data) setRecipes(data);
       } catch {
         // show empty state
@@ -56,8 +56,8 @@ export default function Recetas() {
             {recipes.map((recipe) => (
               <Card key={recipe.id} className="overflow-hidden hover-elevate transition-all flex flex-col" data-testid={`card-recipe-${recipe.id}`}>
                 <div className="h-48 bg-muted w-full relative">
-                  {recipe.image_url ? (
-                    <img src={recipe.image_url} alt={recipe.title} className="w-full h-full object-cover" />
+                  {(recipe.imagen_url || recipe.image_url) ? (
+                    <img src={recipe.imagen_url || recipe.image_url} alt={recipe.titulo || recipe.title} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                       <BookOpen className="h-12 w-12 opacity-20" />
@@ -65,13 +65,13 @@ export default function Recetas() {
                   )}
                 </div>
                 <CardHeader>
-                  <CardTitle className="text-xl line-clamp-1">{recipe.title}</CardTitle>
-                  <CardDescription className="line-clamp-2 mt-2">{recipe.description}</CardDescription>
+                  <CardTitle className="text-xl line-clamp-1">{recipe.titulo || recipe.title}</CardTitle>
+                  <CardDescription className="line-clamp-2 mt-2">{recipe.descripcion || recipe.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="mt-auto pt-4 flex justify-between items-center border-t">
                   <div className="flex items-center text-sm text-muted-foreground">
                     <Clock className="h-4 w-4 mr-1" />
-                    {recipe.prep_time_minutes || 30} min
+                    {recipe.tiempo_preparacion ?? recipe.prep_time_minutes ?? 30} min
                   </div>
                   <Button variant="secondary" size="sm" data-testid={`button-view-recipe-${recipe.id}`}>Ver Receta</Button>
                 </CardContent>

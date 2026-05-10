@@ -16,7 +16,7 @@ export default function Suplementos() {
         return;
       }
       try {
-        const { data } = await supabase.from("supplements").select("*").order("name");
+        const { data } = await supabase.from("suplementos").select("*").order("nombre");
         if (data) setSupplements(data);
       } catch {
         // show empty state
@@ -59,22 +59,22 @@ export default function Suplementos() {
         ) : (
           <div className="grid gap-4">
             {supplements.map((sup) => (
-              <Card key={sup.id} className={sup.active ? "border-primary/50" : "opacity-60"} data-testid={`card-supplement-${sup.id}`}>
+              <Card key={sup.id} className={sup.activo ? "border-primary/50" : "opacity-60"} data-testid={`card-supplement-${sup.id}`}>
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className={`h-10 w-10 rounded-full flex items-center justify-center ${sup.active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                    <div className={`h-10 w-10 rounded-full flex items-center justify-center ${sup.activo ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
                       <Pill className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg">{sup.name}</h3>
-                      <p className="text-sm text-muted-foreground">{sup.dosage} • {sup.frequency}</p>
+                      <h3 className="font-semibold text-lg">{sup.nombre || sup.name}</h3>
+                      <p className="text-sm text-muted-foreground">{sup.dosis || sup.dosage} • {sup.frecuencia || sup.frequency}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className={`text-xs px-2 py-1 rounded-full ${sup.active ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-secondary text-secondary-foreground"}`}>
-                      {sup.active ? "Activo" : "Inactivo"}
+                    <span className={`text-xs px-2 py-1 rounded-full ${sup.activo ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-secondary text-secondary-foreground"}`}>
+                      {sup.activo ? "Activo" : "Inactivo"}
                     </span>
-                    {sup.active && (
+                    {sup.activo && (
                       <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" data-testid={`button-check-supplement-${sup.id}`}>
                         <Check className="h-4 w-4 text-muted-foreground" />
                       </Button>

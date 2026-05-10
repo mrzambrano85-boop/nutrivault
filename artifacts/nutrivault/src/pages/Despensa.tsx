@@ -17,7 +17,7 @@ export default function Despensa() {
         return;
       }
       try {
-        const { data } = await supabase.from("ingredients").select("*").order("name");
+        const { data } = await supabase.from("ingredientes").select("*").order("nombre");
         if (data) setIngredients(data);
       } catch {
         // show empty state
@@ -67,10 +67,10 @@ export default function Despensa() {
             {ingredients.map((ing) => (
               <Card key={ing.id} className="hover-elevate transition-all" data-testid={`card-ingredient-${ing.id}`}>
                 <CardContent className="p-6">
-                  <h3 className="font-semibold text-lg">{ing.name}</h3>
+                  <h3 className="font-semibold text-lg">{ing.nombre || ing.name}</h3>
                   <div className="flex justify-between items-center mt-4 text-sm text-muted-foreground">
-                    <span>{ing.quantity} {ing.unit}</span>
-                    <span className="px-2 py-1 rounded bg-secondary">{ing.category || "General"}</span>
+                    <span>{ing.cantidad ?? ing.quantity} {ing.unidad || ing.unit}</span>
+                    <span className="px-2 py-1 rounded bg-secondary">{ing.categoria || ing.category || "General"}</span>
                   </div>
                 </CardContent>
               </Card>

@@ -31,13 +31,18 @@ export default function Dashboard() {
 
       try {
         const [despensaRes, recetasRes, suplementosRes, puntosRes] = await Promise.all([
-          supabase.from("ingredients").select("*", { count: "exact", head: true }),
-          supabase.from("recipes").select("*", { count: "exact", head: true }),
-          supabase.from("supplements").select("*", { count: "exact", head: true }).eq("active", true),
-          supabase.from("user_points").select("points"),
+          supabase.from("ingredientes").select("*", { count: "exact", head: true }),
+          supabase.from("recetas").select("*", { count: "exact", head: true }),
+          supabase.from("suplementos").select("*", { count: "exact", head: true }).eq("activo", true),
+          supabase.from("vista_puntos_totales").select("*"),
         ]);
 
-        const totalPuntos = puntosRes.data?.reduce((acc, curr) => acc + (curr.points || 0), 0) || 0;
+        const totalPuntos =
+          puntosRes.data?.[0]?.total_puntos ??
+          puntosRes.data?.[0]?.total ??
+          puntosRes.data?.[0]?.puntos ??
+          puntosRes.data?.reduce((acc: number, curr: any) => acc + (curr.puntos || curr.points || 0), 0) ??
+          0;
 
         setStats({
           despensa: despensaRes.count || 0,

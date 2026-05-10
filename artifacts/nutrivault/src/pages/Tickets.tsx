@@ -13,6 +13,7 @@ export default function Tickets() {
     async function load() {
       try {
         const { data } = await supabase.from("tickets").select("*").order("created_at", { ascending: false });
+
         if (data) setTickets(data);
       } catch (e) {
       } finally {

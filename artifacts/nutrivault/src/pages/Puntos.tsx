@@ -16,12 +16,19 @@ export default function Puntos() {
         return;
       }
       try {
-        const { data } = await supabase.from("user_points").select("*").order("created_at", { ascending: false });
-        if (data) {
-          setPointsHistory(data);
-          const total = data.reduce((acc, curr) => acc + (curr.points || 0), 0);
-          setTotalPoints(total);
-        }
+        const [historyRes, totalRes] = await Promise.all([
+          supabase.from("puntos").select("*").order("created_at", { ascending: false }),
+          supabase.from("vista_puntos_totales").select("*"),
+        ]);
+        if (historyRes.data) setPointsHistory(historyRes.data);
+        const viewRow = totalRes.data?.[0];
+        const total =
+          viewRow?.total_puntos ??
+          viewRow?.total ??
+          viewRow?.puntos ??
+          historyRes.data?.reduce((acc, curr) => acc + (curr.puntos || curr.points || 0), 0) ??
+          0;
+        setTotalPoints(total);
       } catch {
         // show empty state
       } finally {
@@ -104,11 +111,11 @@ export default function Puntos() {
                         <TrendingUp className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="font-medium">{entry.reason || "Recompensa"}</p>
+                        <p className="font-medium">{entry.motivo || entry.reason || "Recompensa"}</p>
                         <p className="text-sm text-muted-foreground">{new Date(entry.created_at).toLocaleDateString()}</p>
                       </div>
                     </div>
-                    <div className="font-bold text-lg text-primary">+{entry.points}</div>
+                    <div className="font-bold text-lg text-primary">+{entry.puntos ?? entry.points}</div>
                   </div>
                 ))}
               </div>
