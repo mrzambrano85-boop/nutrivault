@@ -31,7 +31,7 @@ router.post("/scan-ticket", async (req, res) => {
     const client = getClient();
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-5",
       max_tokens: 8192,
       messages: [
         {
@@ -111,7 +111,7 @@ router.post("/generar-planes", async (req, res) => {
     const client = getClient();
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-5",
       max_tokens: 8192,
       messages: [
         {
