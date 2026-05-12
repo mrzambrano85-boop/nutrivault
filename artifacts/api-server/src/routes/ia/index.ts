@@ -171,4 +171,85 @@ Cada plan debe tener entre 2 y 3 recetas. Los pasos deben ser claros y concisos.
   }
 });
 
+// POST /api/scan-suplemento
+// Body: { imageBase64: string, mimeType: string }
+// Returns: { marca, nombre, cantidad }
+router.post("/scan-suplemento", async (req, res) => {
+  try {
+    const { imageBase64, mimeType } = req.body as {
+      imageBase64?: string;
+      mimeType?: string;
+    };
+
+    if (!imageBase64 || !mimeType) {
+      return res.status(400).json({ error: "Se requiere imageBase64 y mimeType." });
+    }
+
+    const validMimes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!validMimes.includes(mimeType)) {
+      return res.status(400).json({ error: "Tipo de imagen no válido. Usa JPEG, PNG o WebP." });
+    }
+
+    const client = getClient();
+
+    const response = await client.messages.create({
+      model: "claude-sonnet-4-5",
+      max_tokens: 1024,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: mimeType as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
+                data: imageBase64,
+              },
+            },
+            {
+              type: "text",
+              text: `Analiza la etiqueta de este suplemento dietético y extrae ÚNICAMENTE estos tres datos:
+1. marca: El nombre de la marca/fabricante (ej: "NOW Foods", "Optimum Nutrition", "Nature Made")
+2. nombre: El nombre del suplemento (ej: "Vitamina D3", "Proteína de Suero", "Omega-3", "Magnesio")
+3. cantidad: La cantidad o potencia por porción con su unidad (ej: "1000 mg", "2000 IU", "25 g", "1 scoop")
+
+Si no puedes leer algún dato claramente, usa null para ese campo.
+
+Responde ÚNICAMENTE con JSON válido, sin texto adicional:
+{ "marca": "...", "nombre": "...", "cantidad": "..." }`,
+            },
+          ],
+        },
+      ],
+    });
+
+    const textBlock = response.content.find((b) => b.type === "text");
+    if (!textBlock || textBlock.type !== "text") {
+      return res.status(500).json({ error: "Claude no devolvió una respuesta válida." });
+    }
+
+    let parsed: { marca: string | null; nombre: string | null; cantidad: string | null };
+    try {
+      const match = textBlock.text.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error("No JSON");
+      parsed = JSON.parse(match[0]);
+    } catch {
+      return res.status(500).json({
+        error: "No se pudo leer la etiqueta. Intenta con una foto más nítida y bien iluminada.",
+      });
+    }
+
+    return res.json({
+      marca: parsed.marca ?? "",
+      nombre: parsed.nombre ?? "",
+      cantidad: parsed.cantidad ?? "",
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Error desconocido";
+    req.log.error({ err }, "Error en scan-suplemento");
+    return res.status(500).json({ error: message });
+  }
+});
+
 export default router;
