@@ -7,29 +7,37 @@ import { Trophy, Star, TrendingUp } from "lucide-react";
 
 export default function Puntos() {
   const { user } = useAuth();
-  const [pointsHistory, setPointsHistory] = useState<any[]>([]);
-  const [totalPoints, setTotalPoints] = useState(0);
+  const [historial, setHistorial] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!supabase || !user) { setLoading(false); return; }
+    if (!supabase || !user) {
+      setLoading(false);
+      return;
+    }
     async function load() {
       try {
-        const [historyRes, totalRes] = await Promise.all([
-          supabase!.from("puntos").select("*").eq("usuario_id", user!.id).order("created_at", { ascending: false }),
-          supabase!.from("vista_puntos_totales").select("*").eq("usuario_id", user!.id),
+        const [histRes, totalRes] = await Promise.all([
+          supabase!
+            .from("puntos")
+            .select("*")
+            .eq("usuario_id", user!.id)
+            .order("created_at", { ascending: false }),
+          supabase!
+            .from("vista_puntos_totales")
+            .select("puntos_totales")
+            .eq("user_id", user!.id),
         ]);
-        if (historyRes.data) setPointsHistory(historyRes.data);
-        const viewRow = totalRes.data?.[0];
-        const total =
-          viewRow?.total_puntos ??
-          viewRow?.total ??
-          viewRow?.puntos ??
-          historyRes.data?.reduce((acc, curr) => acc + (curr.puntos || curr.points || 0), 0) ??
-          0;
-        setTotalPoints(total);
+        if (histRes.data) setHistorial(histRes.data);
+        const row = totalRes.data?.[0];
+        setTotal(
+          row?.puntos_totales ??
+            histRes.data?.reduce((a, c) => a + (c.cantidad || 0), 0) ??
+            0,
+        );
       } catch {
-        // show empty state
+        // empty
       } finally {
         setLoading(false);
       }
@@ -41,17 +49,32 @@ export default function Puntos() {
     <Layout>
       <div className="space-y-8">
         <header>
-          <h1 className="text-3xl font-bold text-foreground">Puntos y Recompensas</h1>
-          <p className="text-muted-foreground mt-1">Gana puntos por mantener hábitos saludables.</p>
+          <h1 className="text-3xl font-bold text-foreground">
+            Puntos y Recompensas
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Gana puntos por mantener hábitos saludables.
+          </p>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="md:col-span-2 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+          <Card
+            className="md:col-span-2 border-primary/20"
+            style={{
+              background:
+                "linear-gradient(135deg,rgba(34,197,94,0.1),rgba(34,197,94,0.05))",
+            }}
+          >
             <CardContent className="p-8 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-primary">Balance Actual</p>
-                <div className="text-5xl font-bold mt-2 flex items-baseline gap-2 text-foreground" data-testid="text-total-points">
-                  {totalPoints} <span className="text-xl text-muted-foreground font-normal">pts</span>
+                <p className="text-sm font-medium text-primary">
+                  Balance Actual
+                </p>
+                <div className="text-5xl font-bold mt-2 flex items-baseline gap-2 text-foreground">
+                  {total}{" "}
+                  <span className="text-xl text-muted-foreground font-normal">
+                    pts
+                  </span>
                 </div>
               </div>
               <div className="h-24 w-24 rounded-full bg-primary/20 flex items-center justify-center">
@@ -68,16 +91,22 @@ export default function Puntos() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">Entusiasta</div>
+              <div className="text-2xl font-bold text-foreground">
+                {total >= 5000
+                  ? "Experto"
+                  : total >= 1000
+                    ? "Avanzado"
+                    : "Entusiasta"}
+              </div>
               <div className="mt-4 space-y-2">
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>Progreso</span>
-                  <span>{totalPoints} / 1000</span>
+                  <span>{total} / 1000</span>
                 </div>
                 <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
                   <div
                     className="h-full bg-primary rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(100, (totalPoints / 1000) * 100)}%` }}
+                    style={{ width: `${Math.min(100, (total / 1000) * 100)}%` }}
                   />
                 </div>
               </div>
@@ -92,27 +121,43 @@ export default function Puntos() {
           <CardContent>
             {loading ? (
               <div className="space-y-4">
-                {[1, 2, 3].map((i) => <div key={i} className="animate-pulse h-12 bg-muted rounded-md" />)}
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="animate-pulse h-12 bg-muted rounded-md"
+                  />
+                ))}
               </div>
-            ) : pointsHistory.length === 0 ? (
+            ) : historial.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Trophy className="h-12 w-12 mx-auto opacity-20 mb-4" />
-                <p>Aún no has ganado puntos. ¡Comienza a registrar tus hábitos!</p>
+                <p>
+                  Aún no has ganado puntos. ¡Comienza a registrar tus hábitos!
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
-                {pointsHistory.map((entry) => (
-                  <div key={entry.id} className="flex justify-between items-center p-4 border rounded-lg hover:bg-muted/30 transition-colors" data-testid={`row-points-${entry.id}`}>
+                {historial.map((e) => (
+                  <div
+                    key={e.id}
+                    className="flex justify-between items-center p-4 border rounded-lg hover:bg-muted/30 transition-colors"
+                  >
                     <div className="flex items-center gap-4">
                       <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                         <TrendingUp className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="font-medium">{entry.motivo || entry.reason || "Recompensa"}</p>
-                        <p className="text-sm text-muted-foreground">{new Date(entry.created_at).toLocaleDateString("es-ES")}</p>
+                        <p className="font-medium">
+                          {e.concepto || "Recompensa"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(e.created_at).toLocaleDateString("es-ES")}
+                        </p>
                       </div>
                     </div>
-                    <div className="font-bold text-lg text-primary">+{entry.puntos ?? entry.points}</div>
+                    <div className="font-bold text-lg text-primary">
+                      +{e.cantidad}
+                    </div>
                   </div>
                 ))}
               </div>
