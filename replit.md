@@ -40,10 +40,20 @@ NutriVault is a clean, green-themed nutrition coach dashboard. Users see a welco
 
 | Table | Key columns |
 |---|---|
-| `ingredients` | `id`, `name`, `quantity`, `unit`, `category` |
-| `recipes` | `id`, `title`, `description`, `image_url`, `prep_time_minutes`, `created_at` |
-| `supplements` | `id`, `name`, `dosage`, `frequency`, `active` |
-| `user_points` | `id`, `points`, `reason`, `created_at` |
+| `ingredientes` | `id`, `nombre`, `cantidad`, `unidad`, `categoria`, `usuario_id` |
+| `recetas` | `id`, `titulo`, `descripcion`, `imagen_url`, `tiempo_prep`, `created_at` |
+| `suplementos` | `id`, `nombre_producto`, `marca`, `dosis_por_servicio`, `unidad_dosis`, `frecuencia_diaria`, `momento_toma`, `activo`, `usuario_id`, `fecha_inicio`, `total_unidades`, `unidades_restantes`, `cantidad_escaneada` |
+| `puntos` | `id`, `usuario_id`, `concepto`, `cantidad`, `created_at` |
+| `usuarios` | `id`, `email`, `nombre`, `edad`, `peso_kg`, `altura_cm`, `unidad_peso`, `unidad_altura`, `objetivo`, `peso_meta_kg`, `nivel_actividad`, `horas_sueno`, `antecedentes_salud`, `restricciones_alimentarias`, `avatar_url` |
+| `pesajes` | `id`, `usuario_id`, `peso` (numeric, always kg), `fecha` (date), `created_at` |
+| `laboratorios` | `id`, `usuario_id`, `nombre_archivo`, `archivo_url`, `fecha_laboratorio`, `notas`, `tipo`, `created_at` |
+
+## Supabase Storage buckets needed
+
+| Bucket | Use | Access |
+|---|---|---|
+| `avatares` | User profile photos | Public |
+| `laboratorios` | Lab PDFs and images | Public |
 
 ## User preferences
 
