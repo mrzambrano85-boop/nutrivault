@@ -118,6 +118,8 @@ function UserPanel() {
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background flex">
       {/* Desktop Sidebar */}
@@ -146,7 +148,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex items-center gap-2">
             <LangToggle />
-            <Sheet>
+            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" data-testid="mobile-menu-btn">
                   <Menu className="h-5 w-5" />
@@ -159,7 +161,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </div>
                   <span className="font-bold text-lg tracking-tight">NutriVault</span>
                 </div>
-                <NavLinks isMobile />
+                <NavLinks isMobile closeMenu={() => setMobileOpen(false)} />
                 <UserPanel />
               </SheetContent>
             </Sheet>
