@@ -10,9 +10,13 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Clock, BookOpen, Users, Sparkles, ChevronDown, ChevronUp,
   AlertCircle, RotateCcw, ChefHat, Check, AlertTriangle, Star, Eye,
+  Plus, Trash2, PenLine,
 } from "lucide-react";
 
 interface RecetaPlan {
@@ -132,6 +136,17 @@ export default function Recetas() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<any>(null);
 
+  const emptyIng = () => ({ nombre: "", cantidad: "", unidad: "" });
+  const [nuevaOpen, setNuevaOpen] = useState(false);
+  const [nuevaNombre, setNuevaNombre] = useState("");
+  const [nuevaDesc, setNuevaDesc] = useState("");
+  const [nuevaTiempo, setNuevaTiempo] = useState("");
+  const [nuevaPorciones, setNuevaPorciones] = useState("");
+  const [nuevaIngs, setNuevaIngs] = useState<{ nombre: string; cantidad: string; unidad: string }[]>([emptyIng()]);
+  const [nuevaPasos, setNuevaPasos] = useState<string[]>([""]);
+  const [nuevaError, setNuevaError] = useState("");
+  const [nuevaGuardando, setNuevaGuardando] = useState(false);
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogStep, setDialogStep] = useState<"confirming" | "guardando" | "exito">("confirming");
   const [recetaActiva, setRecetaActiva] = useState<RecetaPlan | null>(null);
@@ -142,16 +157,20 @@ export default function Recetas() {
 
   useEffect(() => {
     async function load() {
-      if (!supabase) { setLoading(false); return; }
+      if (!supabase || !user) { setLoading(false); return; }
       try {
-        const { data } = await supabase.from("recetas").select("*").order("created_at", { ascending: false });
+        const { data } = await supabase
+          .from("recetas")
+          .select("*")
+          .eq("usuario_id", user.id)
+          .order("created_at", { ascending: false });
         if (data) setRecipes(data);
       } finally {
         setLoading(false);
       }
     }
     load();
-  }, []);
+  }, [user]);
 
   async function generarPlanes() {
     if (!supabase || !user) return;
@@ -287,6 +306,86 @@ export default function Recetas() {
 
   function toggleReceta(key: string) {
     setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
+
+  function abrirNueva() {
+    setNuevaNombre("");
+    setNuevaDesc("");
+    setNuevaTiempo("");
+    setNuevaPorciones("");
+    setNuevaIngs([emptyIng()]);
+    setNuevaPasos([""]);
+    setNuevaError("");
+    setNuevaOpen(true);
+  }
+
+  function cerrarNueva() {
+    setNuevaOpen(false);
+  }
+
+  async function guardarNueva() {
+    if (!supabase || !user) return;
+    if (!nuevaNombre.trim()) {
+      setNuevaError(t("rec.error_nombre"));
+      return;
+    }
+    setNuevaGuardando(true);
+    setNuevaError("");
+    try {
+      const ingredientes_necesarios = nuevaIngs
+        .filter((i) => i.nombre.trim())
+        .map((i) => ({
+          nombre: i.nombre.trim(),
+          cantidad: parseFloat(i.cantidad) || 0,
+          unidad: i.unidad.trim(),
+        }));
+      const pasos = nuevaPasos.map((p) => p.trim()).filter(Boolean);
+      const { error } = await supabase.from("recetas").insert({
+        nombre: nuevaNombre.trim(),
+        descripcion: nuevaDesc.trim() || null,
+        tiempo_minutos: parseInt(nuevaTiempo) || null,
+        porciones: parseInt(nuevaPorciones) || null,
+        ingredientes_necesarios,
+        pasos,
+        usuario_id: user.id,
+      });
+      if (error) throw new Error(error.message);
+      const { data } = await supabase
+        .from("recetas")
+        .select("*")
+        .eq("usuario_id", user.id)
+        .order("created_at", { ascending: false });
+      if (data) setRecipes(data);
+      cerrarNueva();
+    } catch {
+      setNuevaError(t("rec.error_guardar"));
+    } finally {
+      setNuevaGuardando(false);
+    }
+  }
+
+  function updateIng(i: number, field: "nombre" | "cantidad" | "unidad", value: string) {
+    setNuevaIngs((prev) => prev.map((ing, idx) => idx === i ? { ...ing, [field]: value } : ing));
+  }
+
+  function addIng() {
+    setNuevaIngs((prev) => [...prev, emptyIng()]);
+  }
+
+  function removeIng(i: number) {
+    setNuevaIngs((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  function updatePaso(i: number, value: string) {
+    setNuevaPasos((prev) => prev.map((p, idx) => idx === i ? value : p));
+  }
+
+  function addPaso() {
+    setNuevaPasos((prev) => [...prev, ""]);
+  }
+
+  function removePaso(i: number) {
+    setNuevaPasos((prev) => prev.filter((_, idx) => idx !== i));
   }
 
   const difColor = (d: string) => {
@@ -522,6 +621,172 @@ export default function Recetas() {
           </DialogContent>
         </Dialog>
 
+        {/* New Recipe Dialog */}
+        <Dialog open={nuevaOpen} onOpenChange={(v) => { if (!v) cerrarNueva(); }}>
+          <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <PenLine className="h-5 w-5 text-primary" />
+                {t("rec.nueva_title")}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-5 pt-1">
+              {/* Nombre */}
+              <div className="space-y-1.5">
+                <Label htmlFor="nueva-nombre">{t("rec.lbl_nombre")}</Label>
+                <Input
+                  id="nueva-nombre"
+                  placeholder={t("rec.ph_nombre")}
+                  value={nuevaNombre}
+                  onChange={(e) => setNuevaNombre(e.target.value)}
+                  data-testid="input-nueva-nombre"
+                />
+              </div>
+
+              {/* Descripcion */}
+              <div className="space-y-1.5">
+                <Label htmlFor="nueva-desc">{t("rec.lbl_descripcion")}</Label>
+                <Textarea
+                  id="nueva-desc"
+                  placeholder={t("rec.ph_descripcion")}
+                  value={nuevaDesc}
+                  onChange={(e) => setNuevaDesc(e.target.value)}
+                  rows={3}
+                />
+              </div>
+
+              {/* Tiempo + Porciones */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="nueva-tiempo">{t("rec.lbl_tiempo")}</Label>
+                  <Input
+                    id="nueva-tiempo"
+                    type="number"
+                    min="1"
+                    placeholder="30"
+                    value={nuevaTiempo}
+                    onChange={(e) => setNuevaTiempo(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="nueva-porciones">{t("rec.lbl_porciones")}</Label>
+                  <Input
+                    id="nueva-porciones"
+                    type="number"
+                    min="1"
+                    placeholder="2"
+                    value={nuevaPorciones}
+                    onChange={(e) => setNuevaPorciones(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Ingredientes */}
+              <div className="space-y-2">
+                <Label>{t("rec.lbl_ingredientes")}</Label>
+                <div className="space-y-2">
+                  {nuevaIngs.map((ing, i) => (
+                    <div key={i} className="flex gap-2 items-center">
+                      <Input
+                        className="w-16 shrink-0"
+                        placeholder={t("rec.ph_ing_cantidad")}
+                        value={ing.cantidad}
+                        onChange={(e) => updateIng(i, "cantidad", e.target.value)}
+                        type="number"
+                        min="0"
+                        data-testid={`input-ing-cantidad-${i}`}
+                      />
+                      <Input
+                        className="w-20 shrink-0"
+                        placeholder={t("rec.ph_ing_unidad")}
+                        value={ing.unidad}
+                        onChange={(e) => updateIng(i, "unidad", e.target.value)}
+                        data-testid={`input-ing-unidad-${i}`}
+                      />
+                      <Input
+                        className="flex-1 min-w-0"
+                        placeholder={t("rec.ph_ing_nombre")}
+                        value={ing.nombre}
+                        onChange={(e) => updateIng(i, "nombre", e.target.value)}
+                        data-testid={`input-ing-nombre-${i}`}
+                      />
+                      {nuevaIngs.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeIng(i)}
+                          className="text-muted-foreground hover:text-destructive shrink-0"
+                          aria-label="Eliminar ingrediente"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={addIng} className="w-full">
+                  <Plus className="h-3.5 w-3.5 mr-1.5" /> {t("rec.btn_add_ing")}
+                </Button>
+              </div>
+
+              {/* Pasos */}
+              <div className="space-y-2">
+                <Label>{t("rec.lbl_pasos")}</Label>
+                <div className="space-y-2">
+                  {nuevaPasos.map((paso, i) => (
+                    <div key={i} className="flex gap-2 items-start">
+                      <span className="h-6 w-6 rounded-full bg-primary/15 text-primary text-xs font-bold flex items-center justify-center shrink-0 mt-2">
+                        {i + 1}
+                      </span>
+                      <Textarea
+                        rows={2}
+                        placeholder={t("rec.ph_paso")}
+                        value={paso}
+                        onChange={(e) => updatePaso(i, e.target.value)}
+                        className="flex-1"
+                        data-testid={`input-paso-${i}`}
+                      />
+                      {nuevaPasos.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removePaso(i)}
+                          className="text-muted-foreground hover:text-destructive shrink-0 mt-2"
+                          aria-label="Eliminar paso"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={addPaso} className="w-full">
+                  <Plus className="h-3.5 w-3.5 mr-1.5" /> {t("rec.btn_add_paso")}
+                </Button>
+              </div>
+
+              {nuevaError && (
+                <div className="rounded-lg bg-destructive/10 px-4 py-3 flex items-center gap-2 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4 shrink-0" /> {nuevaError}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-1">
+                <Button variant="outline" className="flex-1" onClick={cerrarNueva} disabled={nuevaGuardando}>
+                  {t("common.cancel")}
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={guardarNueva}
+                  disabled={nuevaGuardando}
+                  data-testid="button-guardar-nueva"
+                >
+                  {nuevaGuardando ? t("rec.guardando") : t("rec.btn_guardar")}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Diet Plan Generator */}
         <section className="space-y-4">
           <div className="flex items-end justify-between flex-wrap gap-4">
@@ -666,16 +931,34 @@ export default function Recetas() {
         </section>
 
         {/* Saved Recipes */}
-        {(loading || recipes.length > 0) && (
-          <section className="space-y-4">
+        <section className="space-y-4">
+          <div className="flex items-end justify-between flex-wrap gap-4">
             <div>
               <h2 className="text-2xl font-bold text-foreground">{t("rec.saved_title")}</h2>
               <p className="text-muted-foreground mt-1">{t("rec.saved_subtitle")}</p>
             </div>
+            <Button onClick={abrirNueva} data-testid="button-nueva-receta">
+              <Plus className="h-4 w-4 mr-2" />
+              {t("rec.btn_nueva")}
+            </Button>
+          </div>
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1,2,3].map((i) => <Card key={i} className="animate-pulse h-64 bg-muted" />)}
               </div>
+            ) : recipes.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center p-10 text-center">
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                    <BookOpen className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-medium">{t("rec.saved_title")}</h3>
+                  <p className="text-muted-foreground mt-2 max-w-sm text-sm">{t("rec.saved_subtitle")}</p>
+                  <Button className="mt-4" onClick={abrirNueva} data-testid="button-nueva-receta-empty">
+                    <Plus className="h-4 w-4 mr-2" /> {t("rec.btn_nueva")}
+                  </Button>
+                </CardContent>
+              </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {recipes.map((r) => (
@@ -724,7 +1007,6 @@ export default function Recetas() {
               </div>
             )}
           </section>
-        )}
       </div>
     </Layout>
   );

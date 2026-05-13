@@ -41,7 +41,7 @@ NutriVault is a clean, green-themed nutrition coach dashboard. Users see a welco
 | Table | Key columns |
 |---|---|
 | `ingredientes` | `id`, `nombre`, `cantidad`, `unidad`, `categoria`, `usuario_id` |
-| `recetas` | `id`, `titulo`, `descripcion`, `imagen_url`, `tiempo_prep`, `created_at` |
+| `recetas` | `id`, `nombre`, `descripcion`, `imagen_url`, `tiempo_minutos`, `porciones`, `ingredientes_necesarios` (jsonb array of `{nombre, cantidad, unidad}`), `pasos` (text array), `usuario_id`, `created_at` |
 | `suplementos` | `id`, `nombre_producto`, `marca`, `dosis_por_servicio`, `unidad_dosis`, `frecuencia_diaria`, `momento_toma`, `activo`, `usuario_id`, `fecha_inicio`, `total_unidades`, `unidades_restantes`, `cantidad_escaneada` |
 | `puntos` | `id`, `usuario_id`, `concepto`, `cantidad`, `created_at` |
 | `usuarios` | `id`, `email`, `nombre`, `edad`, `peso_kg`, `altura_cm`, `unidad_peso`, `unidad_altura`, `objetivo`, `peso_meta_kg`, `nivel_actividad`, `horas_sueno`, `antecedentes_salud`, `restricciones_alimentarias`, `avatar_url` |
