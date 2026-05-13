@@ -540,7 +540,29 @@ export default function Recetas() {
                         <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {r.tiempo_minutos} {t("rec.min")}</span>
                         <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {r.porciones} {t("rec.porciones").slice(0, 4)}.</span>
                       </div>
-                      <Button variant="secondary" size="sm" className="w-full">{t("rec.btn_ver")}</Button>
+                      <Button
+                        variant="outline"
+                        className="w-full border-primary/40 text-primary hover:bg-primary hover:text-white transition-colors"
+                        onClick={() => {
+                          const ings: string[] = Array.isArray(r.ingredientes_necesarios)
+                            ? r.ingredientes_necesarios
+                                .map((i: { cantidad?: number; unidad?: string; nombre?: string }) =>
+                                  [i.cantidad, i.unidad, i.nombre].filter(Boolean).join(" ")
+                                )
+                                .filter((s: string) => s.length > 0)
+                            : [];
+                          abrirDialogoCocinar({
+                            nombre: r.nombre ?? r.titulo ?? "",
+                            ingredientes: ings,
+                            pasos: [],
+                            tiempo: r.tiempo_minutos ?? r.tiempo_prep ?? 0,
+                            porciones: r.porciones ?? 1,
+                          });
+                        }}
+                      >
+                        <ChefHat className="h-4 w-4 mr-2" />
+                        {t("rec.btn_cocinar")}
+                      </Button>
                     </CardContent>
                   </Card>
                 ))}
