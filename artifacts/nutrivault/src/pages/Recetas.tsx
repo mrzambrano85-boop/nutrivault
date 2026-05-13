@@ -513,48 +513,57 @@ export default function Recetas() {
                   </div>
                 ) : (
                   <>
-                    <div>
-                      <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                        {t("rec.se_descontaran")}
-                      </p>
-                      {matchesConItem.length === 0 ? (
-                        <p className="text-sm text-muted-foreground italic">{t("rec.no_match")}</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {matchesConItem.map((m, i) => (
-                            <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/40 text-sm">
-                              <div>
-                                <p className="font-medium">{m.despensaItem!.nombre}</p>
-                                <p className="text-muted-foreground text-xs mt-0.5">{m.recetaTexto}</p>
+                    {recetaActiva?.ingredientes?.length === 0 ? (
+                      <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-3">
+                        <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                        <p className="text-sm text-amber-700">{t("rec.sin_ingredientes")}</p>
+                      </div>
+                    ) : (
+                    <>
+                      <div>
+                        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                          {t("rec.se_descontaran")}
+                        </p>
+                        {matchesConItem.length === 0 ? (
+                          <p className="text-sm text-muted-foreground italic">{t("rec.no_match")}</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {matchesConItem.map((m, i) => (
+                              <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/40 text-sm">
+                                <div>
+                                  <p className="font-medium">{m.despensaItem!.nombre}</p>
+                                  <p className="text-muted-foreground text-xs mt-0.5">{m.recetaTexto}</p>
+                                </div>
+                                <div className="text-right shrink-0 ml-4">
+                                  <p className="font-semibold text-destructive">
+                                    -{m.cantidadDeducir} {m.despensaItem!.unidad}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {t("rec.quedaran", { n: m.nuevaCantidad, u: m.despensaItem!.unidad })}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="text-right shrink-0 ml-4">
-                                <p className="font-semibold text-destructive">
-                                  -{m.cantidadDeducir} {m.despensaItem!.unidad}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {t("rec.quedaran", { n: m.nuevaCantidad, u: m.despensaItem!.unidad })}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {matchesSinItem.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                            {t("rec.no_en_despensa")}
+                          </p>
+                          <div className="space-y-1">
+                            {matchesSinItem.map((m, i) => (
+                              <p key={i} className="text-sm text-muted-foreground flex items-center gap-2">
+                                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40 shrink-0" />
+                                {m.recetaTexto}
+                              </p>
+                            ))}
+                          </div>
                         </div>
                       )}
-                    </div>
-
-                    {matchesSinItem.length > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                          {t("rec.no_en_despensa")}
-                        </p>
-                        <div className="space-y-1">
-                          {matchesSinItem.map((m, i) => (
-                            <p key={i} className="text-sm text-muted-foreground flex items-center gap-2">
-                              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40 shrink-0" />
-                              {m.recetaTexto}
-                            </p>
-                          ))}
-                        </div>
-                      </div>
+                    </>
                     )}
 
                     <div className="rounded-lg bg-primary/10 border border-primary/20 px-4 py-3 flex items-center gap-3">
