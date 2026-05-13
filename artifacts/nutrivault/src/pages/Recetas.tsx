@@ -150,10 +150,17 @@ export default function Recetas() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogStep, setDialogStep] = useState<"confirming" | "guardando" | "exito">("confirming");
   const [recetaActiva, setRecetaActiva] = useState<RecetaPlan | null>(null);
+  const [recetaActivaId, setRecetaActivaId] = useState<string | null>(null);
   const [matches, setMatches] = useState<IngMatch[]>([]);
   const [alertas, setAlertas] = useState<string[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(false);
   const [cookError, setCookError] = useState("");
+
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewNotes, setReviewNotes] = useState("");
+  const [reviewGuardando, setReviewGuardando] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+  const [reviews, setReviews] = useState<Record<string, { puntuacion: number; notas: string | null }>>({});
 
   useEffect(() => {
     async function load() {
@@ -164,7 +171,27 @@ export default function Recetas() {
           .select("*")
           .eq("usuario_id", user.id)
           .order("created_at", { ascending: false });
-        if (data) setRecipes(data);
+        if (data) {
+          setRecipes(data);
+          if (data.length > 0) {
+            const ids = data.map((r: any) => r.id);
+            const { data: revData } = await supabase
+              .from("receta_reviews")
+              .select("receta_id, puntuacion, notas")
+              .eq("usuario_id", user.id)
+              .in("receta_id", ids)
+              .order("created_at", { ascending: false });
+            if (revData) {
+              const revMap: Record<string, { puntuacion: number; notas: string | null }> = {};
+              for (const rev of revData) {
+                if (rev.receta_id && !revMap[rev.receta_id]) {
+                  revMap[rev.receta_id] = { puntuacion: rev.puntuacion, notas: rev.notas };
+                }
+              }
+              setReviews(revMap);
+            }
+          }
+        }
       } finally {
         setLoading(false);
       }
@@ -198,12 +225,16 @@ export default function Recetas() {
     }
   }
 
-  async function abrirDialogoCocinar(receta: RecetaPlan) {
+  async function abrirDialogoCocinar(receta: RecetaPlan, recetaId?: string | null) {
     if (!supabase || !user) return;
     setRecetaActiva(receta);
+    setRecetaActivaId(recetaId ?? null);
     setDialogStep("confirming");
     setCookError("");
     setAlertas([]);
+    setReviewRating(0);
+    setReviewNotes("");
+    setReviewError("");
     setLoadingMatches(true);
     setDialogOpen(true);
     try {
@@ -256,9 +287,41 @@ export default function Recetas() {
   function cerrarDialogo() {
     setDialogOpen(false);
     setRecetaActiva(null);
+    setRecetaActivaId(null);
     setMatches([]);
     setAlertas([]);
     setCookError("");
+    setReviewRating(0);
+    setReviewNotes("");
+    setReviewError("");
+  }
+
+  async function guardarReview() {
+    if (!supabase || !user || !recetaActiva) { cerrarDialogo(); return; }
+    if (reviewRating === 0) { cerrarDialogo(); return; }
+    setReviewGuardando(true);
+    setReviewError("");
+    try {
+      const { error } = await supabase.from("receta_reviews").insert({
+        usuario_id: user.id,
+        receta_id: recetaActivaId ?? null,
+        receta_nombre: recetaActiva.nombre,
+        puntuacion: reviewRating,
+        notas: reviewNotes.trim() || null,
+      });
+      if (error) throw new Error(error.message);
+      if (recetaActivaId) {
+        setReviews((prev) => ({
+          ...prev,
+          [recetaActivaId]: { puntuacion: reviewRating, notas: reviewNotes.trim() || null },
+        }));
+      }
+      cerrarDialogo();
+    } catch {
+      setReviewError(t("rec.review_error"));
+    } finally {
+      setReviewGuardando(false);
+    }
   }
 
   function abrirDetalle(r: any) {
@@ -301,7 +364,7 @@ export default function Recetas() {
       pasos: getSavedPasos(r),
       tiempo: r.tiempo_minutos ?? r.tiempo_prep ?? 0,
       porciones: r.porciones ?? 1,
-    });
+    }, r.id ?? null);
   }
 
   function toggleReceta(key: string) {
@@ -478,6 +541,26 @@ export default function Recetas() {
                   )}
                 </div>
 
+                {/* Existing rating */}
+                {selectedRecipe?.id && reviews[selectedRecipe.id] && (
+                  <div className="rounded-lg bg-amber-50 border border-amber-100 px-4 py-3 space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-amber-700">
+                      {t("rec.tu_valoracion")}
+                    </p>
+                    <div className="flex items-center gap-0.5">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          className={`h-5 w-5 ${s <= reviews[selectedRecipe.id].puntuacion ? "text-amber-400 fill-amber-400" : "text-amber-200"}`}
+                        />
+                      ))}
+                    </div>
+                    {reviews[selectedRecipe.id].notas && (
+                      <p className="text-sm text-amber-800 leading-relaxed">{reviews[selectedRecipe.id].notas}</p>
+                    )}
+                  </div>
+                )}
+
                 {/* Cook button */}
                 <div className="pt-2 border-t">
                   <Button
@@ -624,7 +707,74 @@ export default function Recetas() {
                     ))}
                   </div>
                 )}
-                <Button className="w-full" onClick={cerrarDialogo}>{t("rec.btn_listo")}</Button>
+
+                {/* Rating form */}
+                <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-4">
+                  <p className="text-sm font-semibold text-foreground">{t("rec.review_heading")}</p>
+                  <div className="space-y-1.5">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                      {t("rec.review_rating_label")}
+                    </p>
+                    <div className="flex items-center gap-1" data-testid="star-rating">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setReviewRating(reviewRating === star ? 0 : star)}
+                          className="focus:outline-none transition-transform hover:scale-110"
+                          aria-label={`${star} estrella${star !== 1 ? "s" : ""}`}
+                          data-testid={`star-${star}`}
+                        >
+                          <Star
+                            className={`h-8 w-8 transition-colors ${
+                              star <= reviewRating
+                                ? "text-amber-400 fill-amber-400"
+                                : "text-muted-foreground/30"
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="review-notes" className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                      {t("rec.review_notes_label")}
+                    </Label>
+                    <Textarea
+                      id="review-notes"
+                      rows={3}
+                      placeholder={t("rec.review_ph_notes")}
+                      value={reviewNotes}
+                      onChange={(e) => setReviewNotes(e.target.value)}
+                      data-testid="review-notes"
+                    />
+                  </div>
+                  {reviewError && (
+                    <div className="flex items-center gap-2 text-sm text-destructive">
+                      <AlertCircle className="h-4 w-4 shrink-0" /> {reviewError}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={cerrarDialogo}
+                    disabled={reviewGuardando}
+                    data-testid="button-review-skip"
+                  >
+                    {t("rec.review_btn_skip")}
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={guardarReview}
+                    disabled={reviewGuardando || reviewRating === 0}
+                    data-testid="button-review-save"
+                  >
+                    {reviewGuardando ? t("rec.review_guardando") : t("rec.review_btn_save")}
+                  </Button>
+                </div>
               </div>
             )}
           </DialogContent>
@@ -985,6 +1135,16 @@ export default function Recetas() {
                         )}
                       </div>
                       <CardDescription className="line-clamp-2 mt-1">{r.descripcion}</CardDescription>
+                      {reviews[r.id] && (
+                        <div className="flex items-center gap-0.5 mt-1.5" aria-label={`${t("rec.tu_valoracion")}: ${reviews[r.id].puntuacion} de 5`}>
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star
+                              key={s}
+                              className={`h-3.5 w-3.5 ${s <= reviews[r.id].puntuacion ? "text-amber-400 fill-amber-400" : "text-muted-foreground/20"}`}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </CardHeader>
                     <CardContent className="mt-auto pt-3 border-t">
                       <div className="flex justify-between items-center text-sm text-muted-foreground mb-3">
