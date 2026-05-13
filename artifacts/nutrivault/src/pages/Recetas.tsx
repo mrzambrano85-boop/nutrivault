@@ -264,6 +264,12 @@ export default function Recetas() {
   function getSavedPasos(r: any): string[] {
     if (Array.isArray(r?.pasos) && r.pasos.length > 0) return r.pasos;
     if (Array.isArray(r?.instrucciones) && r.instrucciones.length > 0) return r.instrucciones;
+    if (typeof r?.instrucciones === "string" && r.instrucciones.trim()) {
+      return r.instrucciones
+        .split(/\n+/)
+        .map((line: string) => line.replace(/^\d+[\.\)]\s*/, "").trim())
+        .filter((line: string) => line.length > 0);
+    }
     return [];
   }
 
