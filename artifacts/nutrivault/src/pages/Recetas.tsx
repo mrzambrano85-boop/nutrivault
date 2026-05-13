@@ -41,9 +41,16 @@ async function fetchUnsplashImage(query: string): Promise<string | null> {
   }
 }
 
+interface IngEstructurado {
+  nombre: string;
+  cantidad: number;
+  unidad: string;
+}
+
 interface RecetaPlan {
   nombre: string;
   ingredientes: string[];
+  ingredientesEstructurados?: IngEstructurado[];
   pasos: string[];
   tiempo: number;
   porciones: number;
@@ -130,6 +137,9 @@ function matchDespensa(recetaIng: string, despensa: DespensaItem[]): DespensaIte
 }
 
 function buildMatches(receta: RecetaPlan, despensa: DespensaItem[]): IngMatch[] {
+  if (receta.ingredientesEstructurados && receta.ingredientesEstructurados.length > 0) {
+    return buildMatchesFromStructured(receta.ingredientesEstructurados, despensa);
+  }
   return receta.ingredientes.map((ing) => {
     const item = matchDespensa(ing, despensa);
     const recetaAmount = parseAmount(ing);
@@ -141,6 +151,20 @@ function buildMatches(receta: RecetaPlan, despensa: DespensaItem[]): IngMatch[] 
     const esBajo = item ? nuevaCantidad < item.cantidad * UMBRAL_BAJO && nuevaCantidad > 0 : false;
     const seAgota = item ? nuevaCantidad <= 0 : false;
     return { recetaTexto: ing, despensaItem: item, cantidadDeducir, nuevaCantidad, esBajo, seAgota };
+  });
+}
+
+function buildMatchesFromStructured(ings: IngEstructurado[], despensa: DespensaItem[]): IngMatch[] {
+  return ings.map((ing) => {
+    const label = [ing.cantidad || null, ing.unidad || null, ing.nombre].filter(Boolean).join(" ");
+    const item = matchDespensa(ing.nombre, despensa);
+    const pantryUnit = item?.unidad ?? "";
+    const convertedAmount = item ? convertUnit(ing.cantidad, ing.unidad, pantryUnit) : ing.cantidad;
+    const cantidadDeducir = item ? Math.min(convertedAmount, item.cantidad) : 0;
+    const nuevaCantidad = item ? Math.max(0, item.cantidad - cantidadDeducir) : 0;
+    const esBajo = item ? nuevaCantidad < item.cantidad * UMBRAL_BAJO && nuevaCantidad > 0 : false;
+    const seAgota = item ? nuevaCantidad <= 0 : false;
+    return { recetaTexto: label, despensaItem: item, cantidadDeducir, nuevaCantidad, esBajo, seAgota };
   });
 }
 
@@ -404,10 +428,25 @@ export default function Recetas() {
 
   function abrirCocinarDesdDetalle(r: any) {
     cerrarDetalle();
-    const ings = getSavedIngredientes(r);
+    const rawIngs: unknown[] = Array.isArray(r?.ingredientes_necesarios)
+      ? (r.ingredientes_necesarios as unknown[])
+      : [];
+    const validados = rawIngs.filter(
+      (x): x is IngEstructurado =>
+        x !== null &&
+        typeof x === "object" &&
+        typeof (x as Record<string, unknown>).nombre === "string" &&
+        (x as Record<string, unknown>).nombre !== ""
+    );
+    const estructurados: IngEstructurado[] | undefined =
+      validados.length > 0 ? validados : undefined;
+    const ings = estructurados ? estructurados.map((i) =>
+      [i.cantidad || null, i.unidad || null, i.nombre].filter(Boolean).join(" ")
+    ) : getSavedIngredientes(r);
     abrirDialogoCocinar({
       nombre: r.nombre ?? r.titulo ?? "",
       ingredientes: ings,
+      ingredientesEstructurados: estructurados,
       pasos: getSavedPasos(r),
       tiempo: r.tiempo_minutos ?? r.tiempo_prep ?? 0,
       porciones: r.porciones ?? 1,
@@ -686,18 +725,22 @@ export default function Recetas() {
                       </div>
 
                       {matchesSinItem.length > 0 && (
-                        <div>
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                            {t("rec.no_en_despensa")}
-                          </p>
-                          <div className="space-y-1">
-                            {matchesSinItem.map((m, i) => (
-                              <p key={i} className="text-sm text-muted-foreground flex items-center gap-2">
-                                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40 shrink-0" />
-                                {m.recetaTexto}
-                              </p>
-                            ))}
+                        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
+                            <p className="text-sm font-semibold text-red-700">
+                              {t("rec.faltan_ingredientes", { n: matchesSinItem.length })}
+                            </p>
                           </div>
+                          <p className="text-xs text-red-600">{t("rec.faltan_msg")}</p>
+                          <ul className="space-y-1 mt-1">
+                            {matchesSinItem.map((m, i) => (
+                              <li key={i} className="text-sm text-red-800 flex items-center gap-2">
+                                <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
+                                {m.recetaTexto}
+                              </li>
+                            ))}
+                          </ul>
                         </div>
                       )}
                     </>
