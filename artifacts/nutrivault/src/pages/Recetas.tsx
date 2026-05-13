@@ -192,7 +192,7 @@ export default function Recetas() {
         const { data } = await supabase
           .from("recetas")
           .select("*")
-          .eq("usuario_id", user.id)
+          .or(`usuario_id.eq.${user.id},usuario_id.is.null`)
           .order("created_at", { ascending: false });
         if (data) {
           setRecipes(data);
@@ -259,7 +259,11 @@ export default function Recetas() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ingredientes: ings.map((i: any) => `${i.nombre} (${i.cantidad} ${i.unidad})`) }),
       });
-      const data = await res.json();
+      let data: { planes?: Plan[]; error?: string } = {};
+      const raw = await res.text();
+      if (raw) {
+        try { data = JSON.parse(raw); } catch { /* empty or invalid body */ }
+      }
       if (!res.ok) throw new Error(data.error || t("rec.title"));
       setPlanes(data.planes ?? []);
     } catch (err: unknown) {
