@@ -22,21 +22,30 @@ import {
 const UNSPLASH_KEY = import.meta.env.VITE_UNSPLASH_ACCESS_KEY as string | undefined;
 const unsplashCache = new Map<string, string>();
 
+console.log("[Unsplash] Key present:", !!UNSPLASH_KEY, "| Length:", UNSPLASH_KEY?.length ?? 0);
+
 async function fetchUnsplashImage(query: string): Promise<string | null> {
-  if (!UNSPLASH_KEY) return null;
+  if (!UNSPLASH_KEY) {
+    console.warn("[Unsplash] VITE_UNSPLASH_ACCESS_KEY is not set — skipping image fetch");
+    return null;
+  }
   if (unsplashCache.has(query)) return unsplashCache.get(query) || null;
   unsplashCache.set(query, ""); // reserve slot while fetching
   try {
-    const res = await fetch(
-      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`,
-      { headers: { Authorization: `Client-ID ${UNSPLASH_KEY}` } }
-    );
-    if (!res.ok) return null;
+    const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape&client_id=${UNSPLASH_KEY}`;
+    const res = await fetch(url);
+    console.log(`[Unsplash] query="${query}" → status ${res.status}`);
+    if (!res.ok) {
+      const body = await res.text();
+      console.error("[Unsplash] Error body:", body);
+      return null;
+    }
     const data = await res.json();
-    const url: string | null = data.results?.[0]?.urls?.small ?? null;
-    if (url) unsplashCache.set(query, url);
-    return url;
-  } catch {
+    const imageUrl: string | null = data.results?.[0]?.urls?.small ?? null;
+    if (imageUrl) unsplashCache.set(query, imageUrl);
+    return imageUrl;
+  } catch (err) {
+    console.error("[Unsplash] Fetch threw:", err);
     return null;
   }
 }
