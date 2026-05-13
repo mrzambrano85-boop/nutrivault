@@ -2,13 +2,15 @@ import { Layout } from "@/components/layout/Layout";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShoppingBasket, BookOpen, Pill, Trophy } from "lucide-react";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { es, enUS } from "date-fns/locale";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { t, lang } = useI18n();
   const [nombre, setNombre] = useState("Usuario");
   const [stats, setStats] = useState({ despensa: 0, recetas: 0, suplementos: 0, puntos: 0 });
 
@@ -37,11 +39,7 @@ export default function Dashboard() {
         ]);
 
         const viewRow = puntosRes.data?.[0];
-        const totalPuntos =
-          viewRow?.total_puntos ??
-          viewRow?.total ??
-          viewRow?.puntos ??
-          0;
+        const totalPuntos = viewRow?.total_puntos ?? viewRow?.total ?? viewRow?.puntos ?? 0;
 
         setStats({
           despensa: despensaRes.count || 0,
@@ -57,14 +55,16 @@ export default function Dashboard() {
     loadData();
   }, [user]);
 
-  const today = format(new Date(), "EEEE, d 'de' MMMM", { locale: es });
+  const dateLocale = lang === "en" ? enUS : es;
+  const datePattern = lang === "en" ? "EEEE, MMMM d" : "EEEE, d 'de' MMMM";
+  const today = format(new Date(), datePattern, { locale: dateLocale });
 
   return (
     <Layout>
       <div className="space-y-8">
         <header>
           <h1 className="text-3xl font-bold text-foreground capitalize" data-testid="dashboard-welcome">
-            Hola, {nombre}
+            {t("dash.greeting", { name: nombre })}
           </h1>
           <p className="text-muted-foreground mt-1 capitalize" data-testid="dashboard-date">
             {today}
@@ -72,19 +72,17 @@ export default function Dashboard() {
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="dashboard-stats">
-          <StatCard title="Ingredientes en despensa" value={stats.despensa} icon={ShoppingBasket} testId="stat-despensa" />
-          <StatCard title="Recetas disponibles" value={stats.recetas} icon={BookOpen} testId="stat-recetas" />
-          <StatCard title="Suplementos activos" value={stats.suplementos} icon={Pill} testId="stat-suplementos" />
-          <StatCard title="Puntos totales" value={stats.puntos} icon={Trophy} testId="stat-puntos" />
+          <StatCard title={t("dash.stat_despensa")} value={stats.despensa} icon={ShoppingBasket} testId="stat-despensa" />
+          <StatCard title={t("dash.stat_recetas")} value={stats.recetas} icon={BookOpen} testId="stat-recetas" />
+          <StatCard title={t("dash.stat_suplementos")} value={stats.suplementos} icon={Pill} testId="stat-suplementos" />
+          <StatCard title={t("dash.stat_puntos")} value={stats.puntos} icon={Trophy} testId="stat-puntos" />
         </div>
       </div>
     </Layout>
   );
 }
 
-function StatCard({
-  title, value, icon: Icon, testId,
-}: {
+function StatCard({ title, value, icon: Icon, testId }: {
   title: string; value: number; icon: React.ElementType; testId: string;
 }) {
   return (

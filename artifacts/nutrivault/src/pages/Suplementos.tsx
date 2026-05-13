@@ -2,52 +2,18 @@ import { Layout } from "@/components/layout/Layout";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { useI18n } from "@/context/I18nContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  Plus, Pill, ScanLine, Camera, Upload, RotateCcw,
-  Check, AlertTriangle, ChevronDown, ChevronUp,
-} from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Pill, ScanLine, Camera, Upload, RotateCcw, Check, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 
-// ─── Constants ───────────────────────────────────────────────────────────────
-
-const FRECUENCIAS = [
-  { value: "1", label: "Una vez al día" },
-  { value: "2", label: "Dos veces al día" },
-  { value: "3", label: "Tres veces al día" },
-  { value: "3c", label: "Con cada comida" },
-];
-
-const MOMENTOS = [
-  { value: "manana", label: "Mañana" },
-  { value: "mediodia", label: "Mediodía" },
-  { value: "noche", label: "Noche" },
-  { value: "pre_entreno", label: "Pre-entreno" },
-  { value: "post_entreno", label: "Post-entreno" },
-  { value: "con_desayuno", label: "Con el desayuno" },
-  { value: "con_almuerzo", label: "Con el almuerzo" },
-  { value: "con_cena", label: "Con la cena" },
-];
-
-const MOMENTOS_LABEL: Record<string, string> = Object.fromEntries(
-  MOMENTOS.map((m) => [m.value, m.label])
-);
-
-const FREC_POR_DIA: Record<string, number> = {
-  "1": 1, "2": 2, "3": 3, "3c": 3,
-};
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+const FREC_POR_DIA: Record<string, number> = { "1": 1, "2": 2, "3": 3, "3c": 3 };
 
 function diasRestantes(sup: any): number | null {
   if (sup.unidades_restantes == null || !sup.frecuencia_diaria) return null;
@@ -55,12 +21,12 @@ function diasRestantes(sup: any): number | null {
   return Math.max(0, Math.floor(sup.unidades_restantes / porDia));
 }
 
-function fechaAgotamiento(sup: any): string | null {
+function fechaAgotamiento(sup: any, lang: string): string | null {
   const dias = diasRestantes(sup);
   if (dias == null) return null;
   const d = new Date();
   d.setDate(d.getDate() + dias);
-  return d.toLocaleDateString("es-ES", { day: "numeric", month: "long" });
+  return d.toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { day: "numeric", month: "long" });
 }
 
 function pctRestante(sup: any): number {
@@ -68,22 +34,14 @@ function pctRestante(sup: any): number {
   return Math.min(100, (sup.unidades_restantes / sup.total_unidades) * 100);
 }
 
-// ─── Form blank ──────────────────────────────────────────────────────────────
-
 const FORM_BLANK = {
-  nombre_producto: "",
-  marca: "",
-  cantidad_escaneada: "",
-  total_unidades: "",
-  frecuencia_diaria: "1",
-  momento_toma: "manana",
-  activo: true,
+  nombre_producto: "", marca: "", cantidad_escaneada: "", total_unidades: "",
+  frecuencia_diaria: "1", momento_toma: "manana", activo: true,
 };
-
-// ─── Component ───────────────────────────────────────────────────────────────
 
 export default function Suplementos() {
   const { user } = useAuth();
+  const { t, lang } = useI18n();
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
 
@@ -91,43 +49,54 @@ export default function Suplementos() {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
-  // ── Add/Scan dialog
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"choice" | "scanning" | "form">("choice");
   const [form, setForm] = useState({ ...FORM_BLANK });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
 
-  // ── Scan flow
   const [imgPreview, setImgPreview] = useState<string | null>(null);
   const [imgBase64, setImgBase64] = useState<string | null>(null);
   const [imgMime, setImgMime] = useState("image/jpeg");
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState("");
 
-  // ── Dose taken feedback
   const [tomarLoading, setTomarLoading] = useState<Record<string, boolean>>({});
   const [tomarAlert, setTomarAlert] = useState<Record<string, string>>({});
 
-  // ─── Load ──────────────────────────────────────────────────────────────────
+  // Translation-aware lookup maps
+  const FRECUENCIAS = [
+    { value: "1",  label: t("sup.frec_1") },
+    { value: "2",  label: t("sup.frec_2") },
+    { value: "3",  label: t("sup.frec_3") },
+    { value: "3c", label: t("sup.frec_3c") },
+  ];
+
+  const MOMENTOS = [
+    { value: "manana",        label: t("sup.mom_manana") },
+    { value: "mediodia",      label: t("sup.mom_mediodia") },
+    { value: "noche",         label: t("sup.mom_noche") },
+    { value: "pre_entreno",   label: t("sup.mom_pre") },
+    { value: "post_entreno",  label: t("sup.mom_post") },
+    { value: "con_desayuno",  label: t("sup.mom_desayuno") },
+    { value: "con_almuerzo",  label: t("sup.mom_almuerzo") },
+    { value: "con_cena",      label: t("sup.mom_cena") },
+  ];
+
+  const MOMENTOS_LABEL = Object.fromEntries(MOMENTOS.map((m) => [m.value, m.label]));
 
   async function load() {
     if (!supabase || !user) { setLoading(false); return; }
     try {
       const { data } = await supabase
-        .from("suplementos")
-        .select("*")
-        .eq("usuario_id", user.id)
-        .order("nombre_producto");
+        .from("suplementos").select("*").eq("usuario_id", user.id).order("nombre_producto");
       if (data) setSupplements(data);
-    } catch { /* empty state */ } finally {
+    } catch { /* empty */ } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => { load(); }, [user]);
-
-  // ─── Dialog helpers ────────────────────────────────────────────────────────
 
   function openDialog(mode: "choice" | "form") {
     setDialogMode(mode);
@@ -147,13 +116,8 @@ export default function Suplementos() {
     setFormError("");
   }
 
-  // ─── Image pick ────────────────────────────────────────────────────────────
-
   function handleImageFile(file: File) {
-    if (!file.type.startsWith("image/")) {
-      setScanError("El archivo debe ser una imagen (JPEG, PNG o WebP).");
-      return;
-    }
+    if (!file.type.startsWith("image/")) { setScanError(t("tick.err_not_image")); return; }
     const reader = new FileReader();
     reader.onload = (e) => {
       const dataUrl = e.target?.result as string;
@@ -173,8 +137,6 @@ export default function Suplementos() {
     e.target.value = "";
   }
 
-  // ─── Scan ──────────────────────────────────────────────────────────────────
-
   async function escanearEtiqueta() {
     if (!imgBase64) return;
     setScanning(true);
@@ -186,7 +148,7 @@ export default function Suplementos() {
         body: JSON.stringify({ imageBase64: imgBase64, mimeType: imgMime }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error al escanear la etiqueta.");
+      if (!res.ok) throw new Error(data.error || t("sup.btn_scan_action"));
       setForm((f) => ({
         ...f,
         nombre_producto: data.nombre || f.nombre_producto,
@@ -195,19 +157,16 @@ export default function Suplementos() {
       }));
       setDialogMode("form");
     } catch (err: unknown) {
-      setScanError(err instanceof Error ? err.message : "Error desconocido al escanear.");
+      setScanError(err instanceof Error ? err.message : t("sup.btn_scan_action"));
     } finally {
       setScanning(false);
     }
   }
 
-  // ─── Save ──────────────────────────────────────────────────────────────────
-
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!supabase || !user) return;
-    if (!form.nombre_producto.trim()) { setFormError("El nombre del suplemento es obligatorio."); return; }
-
+    if (!form.nombre_producto.trim()) { setFormError(t("sup.err_nombre")); return; }
     setSaving(true);
     setFormError("");
     try {
@@ -233,66 +192,42 @@ export default function Suplementos() {
     }
   }
 
-  // ─── Take dose ─────────────────────────────────────────────────────────────
-
   async function tomarDosis(supId: string) {
     if (!supabase || !user) return;
     const sup = supplements.find((s) => s.id === supId);
     if (!sup || sup.unidades_restantes == null) return;
-
     setTomarLoading((p) => ({ ...p, [supId]: true }));
     const nuevas = Math.max(0, (sup.unidades_restantes ?? 1) - 1);
-
-    // Optimistic update
-    setSupplements((prev) =>
-      prev.map((s) => (s.id === supId ? { ...s, unidades_restantes: nuevas } : s))
-    );
-
+    setSupplements((prev) => prev.map((s) => s.id === supId ? { ...s, unidades_restantes: nuevas } : s));
     try {
-      await supabase
-        .from("suplementos")
-        .update({ unidades_restantes: nuevas })
-        .eq("id", supId)
-        .eq("usuario_id", user.id);
-
-      // Alert check
+      await supabase.from("suplementos").update({ unidades_restantes: nuevas }).eq("id", supId).eq("usuario_id", user.id);
       const tempSup = { ...sup, unidades_restantes: nuevas };
       const dias = diasRestantes(tempSup);
       if (dias != null && dias <= 5) {
         const nombre = sup.nombre_producto || "Suplemento";
-        setTomarAlert((p) => ({
-          ...p,
-          [supId]: `¡Tu ${nombre} está por agotarse! Quedan ${dias} día${dias !== 1 ? "s" : ""}.`,
-        }));
+        setTomarAlert((p) => ({ ...p, [supId]: t("sup.low_stock", { nombre, n: dias }) }));
       } else {
         setTomarAlert((p) => ({ ...p, [supId]: "" }));
       }
     } catch {
-      // revert optimistic
-      setSupplements((prev) =>
-        prev.map((s) => (s.id === supId ? { ...s, unidades_restantes: sup.unidades_restantes } : s))
-      );
+      setSupplements((prev) => prev.map((s) => s.id === supId ? { ...s, unidades_restantes: sup.unidades_restantes } : s));
     } finally {
       setTomarLoading((p) => ({ ...p, [supId]: false }));
     }
   }
 
-  // ─── Render ────────────────────────────────────────────────────────────────
-
   return (
     <Layout>
-      {/* Hidden file inputs */}
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFileChange} />
 
-      {/* ── Dialog ── */}
       <Dialog open={dialogOpen} onOpenChange={(v) => { if (!v) closeDialog(); }}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {dialogMode === "choice" && "Añadir Suplemento"}
-              {dialogMode === "scanning" && "Escanear etiqueta"}
-              {dialogMode === "form" && "Datos del suplemento"}
+              {dialogMode === "choice" && t("sup.dialog_add")}
+              {dialogMode === "scanning" && t("sup.dialog_scan")}
+              {dialogMode === "form" && t("sup.dialog_form")}
             </DialogTitle>
           </DialogHeader>
 
@@ -300,15 +235,15 @@ export default function Suplementos() {
           {dialogMode === "choice" && (
             <div className="space-y-3 mt-2">
               <button
-                onClick={() => { setDialogMode("scanning"); }}
+                onClick={() => setDialogMode("scanning")}
                 className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all text-left"
               >
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                   <ScanLine className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="font-semibold">Escanear etiqueta del frasco</p>
-                  <p className="text-sm text-muted-foreground">Claude lee la marca, nombre y cantidad automáticamente</p>
+                  <p className="font-semibold">{t("sup.choice_scan_title")}</p>
+                  <p className="text-sm text-muted-foreground">{t("sup.choice_scan_desc")}</p>
                 </div>
               </button>
               <button
@@ -319,14 +254,14 @@ export default function Suplementos() {
                   <Plus className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="font-semibold">Agregar manualmente</p>
-                  <p className="text-sm text-muted-foreground">Ingresa los datos tú mismo</p>
+                  <p className="font-semibold">{t("sup.choice_manual_title")}</p>
+                  <p className="text-sm text-muted-foreground">{t("sup.choice_manual_desc")}</p>
                 </div>
               </button>
             </div>
           )}
 
-          {/* SCANNING — image capture or preview + scan button */}
+          {/* SCANNING */}
           {dialogMode === "scanning" && (
             <div className="space-y-4 mt-2">
               {!imgPreview ? (
@@ -334,42 +269,30 @@ export default function Suplementos() {
                   <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
                     <ScanLine className="h-8 w-8 text-primary" />
                   </div>
-                  <p className="text-sm text-muted-foreground text-center">
-                    Toma una foto clara de la etiqueta del frasco, asegurándote de que el nombre y la dosis sean legibles.
-                  </p>
+                  <p className="text-sm text-muted-foreground text-center">{t("sup.scan_instructions")}</p>
                   <div className="flex gap-3">
                     <Button onClick={() => fileRef.current?.click()}>
-                      <Upload className="h-4 w-4 mr-2" /> Subir foto
+                      <Upload className="h-4 w-4 mr-2" /> {t("sup.btn_upload")}
                     </Button>
                     <Button variant="outline" onClick={() => cameraRef.current?.click()}>
-                      <Camera className="h-4 w-4 mr-2" /> Cámara
+                      <Camera className="h-4 w-4 mr-2" /> {t("sup.btn_camera")}
                     </Button>
                   </div>
                 </div>
               ) : (
                 <>
-                  <img
-                    src={imgPreview}
-                    alt="Etiqueta del suplemento"
-                    className="w-full max-h-64 object-contain rounded-lg bg-muted"
-                  />
+                  <img src={imgPreview} alt={t("sup.dialog_scan")} className="w-full max-h-64 object-contain rounded-lg bg-muted" />
                   {scanning && (
                     <div className="flex items-center gap-2 text-sm text-primary">
                       <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                      Claude está leyendo la etiqueta...
+                      {t("sup.btn_scanning")}
                     </div>
                   )}
-                  {scanError && (
-                    <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">{scanError}</p>
-                  )}
+                  {scanError && <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">{scanError}</p>}
                   <div className="flex gap-3">
-                    <Button
-                      onClick={escanearEtiqueta}
-                      disabled={scanning}
-                      className="flex-1"
-                    >
+                    <Button onClick={escanearEtiqueta} disabled={scanning} className="flex-1">
                       <ScanLine className="h-4 w-4 mr-2" />
-                      {scanning ? "Escaneando..." : "Escanear etiqueta"}
+                      {scanning ? t("sup.btn_scanning") : t("sup.btn_scan_action")}
                     </Button>
                     <Button variant="outline" onClick={() => { setImgPreview(null); setImgBase64(null); setScanError(""); }}>
                       <RotateCcw className="h-4 w-4" />
@@ -378,7 +301,7 @@ export default function Suplementos() {
                 </>
               )}
               <Button variant="ghost" className="w-full" onClick={() => setDialogMode("choice")}>
-                Volver
+                {t("sup.back")}
               </Button>
             </div>
           )}
@@ -386,18 +309,17 @@ export default function Suplementos() {
           {/* FORM */}
           {dialogMode === "form" && (
             <form onSubmit={handleSave} className="space-y-4 mt-2">
-              {/* Scan result banner */}
               {form.cantidad_escaneada && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary/10 text-sm text-primary">
                   <Check className="h-4 w-4 shrink-0" />
-                  <span>Etiqueta escaneada correctamente. Revisa y completa los campos.</span>
+                  <span>{t("sup.scan_ok")}</span>
                 </div>
               )}
 
               <div className="space-y-2">
-                <Label>Nombre del suplemento *</Label>
+                <Label>{t("sup.lbl_nombre")}</Label>
                 <Input
-                  placeholder="Ej: Vitamina D3, Omega-3, Proteína de Suero..."
+                  placeholder={t("sup.ph_nombre")}
                   value={form.nombre_producto}
                   onChange={(e) => setForm({ ...form, nombre_producto: e.target.value })}
                   data-testid="input-sup-nombre"
@@ -405,85 +327,71 @@ export default function Suplementos() {
               </div>
 
               <div className="space-y-2">
-                <Label>Marca</Label>
+                <Label>{t("sup.lbl_marca")}</Label>
                 <Input
-                  placeholder="Ej: NOW Foods, Nature Made..."
+                  placeholder={t("sup.ph_marca")}
                   value={form.marca}
                   onChange={(e) => setForm({ ...form, marca: e.target.value })}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Cantidad por dosis (de la etiqueta)</Label>
+                <Label>{t("sup.lbl_cantidad")}</Label>
                 <Input
-                  placeholder="Ej: 1000 mg, 2000 IU, 25 g, 1 scoop"
+                  placeholder={t("sup.ph_cantidad")}
                   value={form.cantidad_escaneada}
                   onChange={(e) => setForm({ ...form, cantidad_escaneada: e.target.value })}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Total de unidades en el frasco</Label>
+                <Label>{t("sup.lbl_total")}</Label>
                 <Input
-                  type="number"
-                  min="1"
-                  placeholder="Ej: 90 cápsulas, 30 scoops → escribe el número"
+                  type="number" min="1"
+                  placeholder={t("sup.ph_total")}
                   value={form.total_unidades}
                   onChange={(e) => setForm({ ...form, total_unidades: e.target.value })}
                   data-testid="input-sup-total"
                 />
-                <p className="text-xs text-muted-foreground">Este número se usará para calcular cuántos días te quedan.</p>
+                <p className="text-xs text-muted-foreground">{t("sup.total_hint")}</p>
               </div>
 
               <div className="space-y-2">
-                <Label>Frecuencia</Label>
+                <Label>{t("sup.lbl_frecuencia")}</Label>
                 <Select value={form.frecuencia_diaria} onValueChange={(v) => setForm({ ...form, frecuencia_diaria: v })}>
-                  <SelectTrigger data-testid="select-sup-frecuencia">
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger data-testid="select-sup-frecuencia"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {FRECUENCIAS.map((f) => (
-                      <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
-                    ))}
+                    {FRECUENCIAS.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label>Hora de toma</Label>
+                <Label>{t("sup.lbl_hora")}</Label>
                 <Select value={form.momento_toma} onValueChange={(v) => setForm({ ...form, momento_toma: v })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {MOMENTOS.map((m) => (
-                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                    ))}
+                    {MOMENTOS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div>
-                  <p className="font-medium text-sm">Activo</p>
-                  <p className="text-xs text-muted-foreground">Incluir en seguimiento diario</p>
+                  <p className="font-medium text-sm">{t("sup.lbl_activo")}</p>
+                  <p className="text-xs text-muted-foreground">{t("sup.activo_desc")}</p>
                 </div>
-                <Switch
-                  checked={form.activo}
-                  onCheckedChange={(v) => setForm({ ...form, activo: v })}
-                />
+                <Switch checked={form.activo} onCheckedChange={(v) => setForm({ ...form, activo: v })} />
               </div>
 
-              {formError && (
-                <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">{formError}</p>
-              )}
+              {formError && <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">{formError}</p>}
 
               <div className="flex gap-3 pt-1">
                 <Button type="button" variant="outline" className="flex-1" onClick={closeDialog}>
-                  Cancelar
+                  {t("sup.cancel")}
                 </Button>
                 <Button type="submit" disabled={saving} className="flex-1" data-testid="button-save-supplement">
-                  {saving ? "Guardando..." : "Guardar"}
+                  {saving ? t("sup.saving") : t("sup.save")}
                 </Button>
               </div>
             </form>
@@ -491,26 +399,26 @@ export default function Suplementos() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Page ── */}
+      {/* Page */}
       <div className="space-y-6">
         <header className="flex justify-between items-center flex-wrap gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Suplementos</h1>
-            <p className="text-muted-foreground mt-1">Rastrea tu inventario y toma diaria de suplementos.</p>
+            <h1 className="text-3xl font-bold text-foreground">{t("sup.title")}</h1>
+            <p className="text-muted-foreground mt-1">{t("sup.subtitle")}</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => openDialog("choice")} data-testid="button-scan-supplement">
-              <ScanLine className="h-4 w-4 mr-2" /> Escanear etiqueta
+              <ScanLine className="h-4 w-4 mr-2" /> {t("sup.btn_scan")}
             </Button>
             <Button onClick={() => openDialog("form")} data-testid="button-add-supplement">
-              <Plus className="h-4 w-4 mr-2" /> Añadir
+              <Plus className="h-4 w-4 mr-2" /> {t("sup.btn_add")}
             </Button>
           </div>
         </header>
 
         {loading ? (
           <div className="space-y-4">
-            {[1, 2, 3].map((i) => <Card key={i} className="animate-pulse h-28 bg-muted" />)}
+            {[1,2,3].map((i) => <Card key={i} className="animate-pulse h-28 bg-muted" />)}
           </div>
         ) : supplements.length === 0 ? (
           <Card className="border-dashed">
@@ -518,17 +426,15 @@ export default function Suplementos() {
               <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                 <Pill className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-lg font-medium">Sin suplementos</h3>
-              <p className="text-muted-foreground mt-2 max-w-sm text-sm">
-                Escanea la etiqueta de tu frasco o agrega un suplemento manualmente para comenzar.
-              </p>
+              <h3 className="text-lg font-medium">{t("sup.empty_title")}</h3>
+              <p className="text-muted-foreground mt-2 max-w-sm text-sm">{t("sup.empty_msg")}</p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-4">
             {supplements.map((sup) => {
               const dias = diasRestantes(sup);
-              const fecha = fechaAgotamiento(sup);
+              const fecha = fechaAgotamiento(sup, lang);
               const pct = pctRestante(sup);
               const isLow = dias != null && dias <= 5;
               const isExpanded = !!expanded[sup.id];
@@ -541,9 +447,7 @@ export default function Suplementos() {
                   className={`transition-all ${
                     isLow && tieneTracking
                       ? "border-red-300 bg-red-50/40"
-                      : sup.activo
-                        ? "border-primary/20 hover:shadow-md"
-                        : "opacity-55"
+                      : sup.activo ? "border-primary/20 hover:shadow-md" : "opacity-55"
                   }`}
                   data-testid={`card-supplement-${sup.id}`}
                 >
@@ -552,9 +456,7 @@ export default function Suplementos() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
-                          isLow && tieneTracking
-                            ? "bg-red-100 text-red-600"
-                            : sup.activo ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                          isLow && tieneTracking ? "bg-red-100 text-red-600" : sup.activo ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                         }`}>
                           <Pill className="h-5 w-5" />
                         </div>
@@ -566,16 +468,12 @@ export default function Suplementos() {
                           </p>
                         </div>
                       </div>
-
                       <div className="flex items-center gap-2 shrink-0">
                         <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                          isLow && tieneTracking
-                            ? "bg-red-100 text-red-700"
-                            : sup.activo
-                              ? "bg-primary/10 text-primary"
-                              : "bg-secondary text-secondary-foreground"
+                          isLow && tieneTracking ? "bg-red-100 text-red-700" :
+                          sup.activo ? "bg-primary/10 text-primary" : "bg-secondary text-secondary-foreground"
                         }`}>
-                          {sup.activo ? "Activo" : "Inactivo"}
+                          {sup.activo ? t("sup.activo") : t("sup.inactivo")}
                         </span>
                         <button
                           onClick={() => setExpanded((p) => ({ ...p, [sup.id]: !p[sup.id] }))}
@@ -590,45 +488,42 @@ export default function Suplementos() {
                     {tieneTracking && (
                       <div className="space-y-1.5">
                         <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>{t("sup.unidades_de", { r: sup.unidades_restantes ?? 0, t: sup.total_unidades })}</span>
                           <span>
-                            {sup.unidades_restantes ?? 0} de {sup.total_unidades} unidades
-                          </span>
-                          <span>
-                            {dias != null ? `${dias} día${dias !== 1 ? "s" : ""}` : ""}
-                            {fecha ? ` · hasta el ${fecha}` : ""}
+                            {dias != null ? t("sup.dias", { n: dias }) : ""}
+                            {fecha ? ` · ${t("sup.hasta", { f: fecha })}` : ""}
                           </span>
                         </div>
-                        <Progress
-                          value={pct}
-                          className={`h-2 ${isLow ? "[&>div]:bg-red-500" : ""}`}
-                        />
+                        <Progress value={pct} className={`h-2 ${isLow ? "[&>div]:bg-red-500" : ""}`} />
                       </div>
                     )}
 
                     {/* Low stock alert */}
-                    {(isLow && tieneTracking) || alerta ? (
+                    {((isLow && tieneTracking) || alerta) && (
                       <div className="flex items-start gap-2 px-3 py-2 rounded-md bg-red-100 border border-red-200 text-sm text-red-700">
                         <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-red-500" />
-                        <span>
-                          {alerta || `¡Tu ${sup.nombre_producto} está por agotarse! Quedan ${dias} día${dias !== 1 ? "s" : ""}.`}
-                        </span>
+                        <span>{alerta || t("sup.low_stock", { nombre: sup.nombre_producto, n: dias ?? 0 })}</span>
                       </div>
-                    ) : null}
+                    )}
 
-                    {/* Expanded: take dose button */}
+                    {/* Expanded detail */}
                     {isExpanded && sup.activo && (
                       <div className="pt-1 border-t space-y-2">
                         <div className="text-xs text-muted-foreground space-y-0.5">
-                          <p><span className="font-medium">Frecuencia:</span> {FRECUENCIAS.find(f => f.value === String(sup.frecuencia_diaria))?.label ?? sup.frecuencia_diaria}</p>
+                          <p>
+                            <span className="font-medium">{t("sup.frec_lbl")}</span>{" "}
+                            {FRECUENCIAS.find((f) => f.value === String(sup.frecuencia_diaria))?.label ?? sup.frecuencia_diaria}
+                          </p>
                           {sup.frecuencia_diaria && (
-                            <p><span className="font-medium">Dosis/día:</span> {FREC_POR_DIA[String(sup.frecuencia_diaria)] ?? sup.frecuencia_diaria}</p>
+                            <p>
+                              <span className="font-medium">{t("sup.dosis_dia")}</span>{" "}
+                              {FREC_POR_DIA[String(sup.frecuencia_diaria)] ?? sup.frecuencia_diaria}
+                            </p>
                           )}
                         </div>
-
                         {tieneTracking && (
                           <Button
-                            variant="outline"
-                            size="sm"
+                            variant="outline" size="sm"
                             className="w-full border-primary/40 text-primary hover:bg-primary hover:text-white transition-colors"
                             disabled={!!tomarLoading[sup.id] || (sup.unidades_restantes ?? 0) <= 0}
                             onClick={() => tomarDosis(sup.id)}
@@ -636,10 +531,10 @@ export default function Suplementos() {
                           >
                             <Check className="h-4 w-4 mr-2" />
                             {tomarLoading[sup.id]
-                              ? "Registrando..."
+                              ? t("sup.btn_tomando")
                               : (sup.unidades_restantes ?? 0) <= 0
-                                ? "Sin unidades restantes"
-                                : "Tomé mi dosis"}
+                                ? t("sup.sin_unidades")
+                                : t("sup.btn_tomar")}
                           </Button>
                         )}
                       </div>
