@@ -57,6 +57,22 @@ function parseAmount(text: string): number {
   return m ? parseFloat(m[1]) : 1;
 }
 
+function extractUnit(text: string): string {
+  const m = text.match(/^[½¼¾⅓⅔\d\.]+\s*(kg|gr?|ml|l|oz|lb|tazas?|cucharadas?|cucharitas?|piezas?|unidades?|latas?|dientes?|ramas?|hojas?)\b/i);
+  return m ? m[1].toLowerCase() : "";
+}
+
+function convertUnit(amount: number, fromUnit: string, toUnit: string): number {
+  const from = fromUnit.toLowerCase().replace(/^gr$/, "g");
+  const to   = toUnit.toLowerCase().replace(/^gr$/, "g");
+  if (from === to || !from || !to) return amount;
+  if (from === "g"  && to === "kg") return amount / 1000;
+  if (from === "kg" && to === "g")  return amount * 1000;
+  if (from === "ml" && to === "l")  return amount / 1000;
+  if (from === "l"  && to === "ml") return amount * 1000;
+  return amount;
+}
+
 function extractCoreName(text: string): string {
   return text
     .toLowerCase()
@@ -90,7 +106,11 @@ function matchDespensa(recetaIng: string, despensa: DespensaItem[]): DespensaIte
 function buildMatches(receta: RecetaPlan, despensa: DespensaItem[]): IngMatch[] {
   return receta.ingredientes.map((ing) => {
     const item = matchDespensa(ing, despensa);
-    const cantidadDeducir = item ? Math.min(parseAmount(ing), item.cantidad) : 0;
+    const recetaAmount = parseAmount(ing);
+    const recetaUnit   = extractUnit(ing);
+    const pantryUnit   = item?.unidad ?? "";
+    const convertedAmount = item ? convertUnit(recetaAmount, recetaUnit, pantryUnit) : recetaAmount;
+    const cantidadDeducir = item ? Math.min(convertedAmount, item.cantidad) : 0;
     const nuevaCantidad = item ? Math.max(0, item.cantidad - cantidadDeducir) : 0;
     const esBajo = item ? nuevaCantidad < item.cantidad * UMBRAL_BAJO && nuevaCantidad > 0 : false;
     const seAgota = item ? nuevaCantidad <= 0 : false;
