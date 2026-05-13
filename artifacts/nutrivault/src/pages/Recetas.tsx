@@ -192,7 +192,6 @@ export default function Recetas() {
         const { data } = await supabase
           .from("recetas")
           .select("*")
-          .or(`usuario_id.eq.${user.id},usuario_id.is.null`)
           .order("created_at", { ascending: false });
         if (data) {
           setRecipes(data);
@@ -455,16 +454,13 @@ export default function Recetas() {
         nombre: nuevaNombre.trim(),
         descripcion: nuevaDesc.trim() || null,
         tiempo_minutos: parseInt(nuevaTiempo) || null,
-        porciones: parseInt(nuevaPorciones) || null,
         ingredientes_necesarios,
-        pasos,
-        usuario_id: user.id,
+        instrucciones: pasos.join("\n"),
       });
       if (error) throw new Error(error.message);
       const { data } = await supabase
         .from("recetas")
         .select("*")
-        .eq("usuario_id", user.id)
         .order("created_at", { ascending: false });
       if (data) setRecipes(data);
       cerrarNueva();
