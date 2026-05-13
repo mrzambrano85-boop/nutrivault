@@ -19,6 +19,28 @@ import {
   Plus, Trash2, PenLine,
 } from "lucide-react";
 
+const UNSPLASH_KEY = import.meta.env.VITE_UNSPLASH_ACCESS_KEY as string | undefined;
+const unsplashCache = new Map<string, string>();
+
+async function fetchUnsplashImage(query: string): Promise<string | null> {
+  if (!UNSPLASH_KEY) return null;
+  if (unsplashCache.has(query)) return unsplashCache.get(query) || null;
+  unsplashCache.set(query, ""); // reserve slot while fetching
+  try {
+    const res = await fetch(
+      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`,
+      { headers: { Authorization: `Client-ID ${UNSPLASH_KEY}` } }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const url: string | null = data.results?.[0]?.urls?.small ?? null;
+    if (url) unsplashCache.set(query, url);
+    return url;
+  } catch {
+    return null;
+  }
+}
+
 interface RecetaPlan {
   nombre: string;
   ingredientes: string[];
@@ -127,6 +149,7 @@ export default function Recetas() {
   const { t } = useI18n();
   const [recipes, setRecipes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [recipeImages, setRecipeImages] = useState<Record<string, string>>({});
 
   const [generando, setGenerando] = useState(false);
   const [planes, setPlanes] = useState<Plan[]>([]);
@@ -198,6 +221,27 @@ export default function Recetas() {
     }
     load();
   }, [user]);
+
+  useEffect(() => {
+    if (!UNSPLASH_KEY || recipes.length === 0) return;
+    let cancelled = false;
+    const fetchImages = async () => {
+      const results = await Promise.all(
+        recipes.map(async (r) => {
+          const url = await fetchUnsplashImage(r.nombre ?? "comida saludable");
+          return { id: r.id as string, url };
+        })
+      );
+      if (cancelled) return;
+      const map: Record<string, string> = {};
+      for (const { id, url } of results) {
+        if (url) map[id] = url;
+      }
+      setRecipeImages((prev) => ({ ...prev, ...map }));
+    };
+    fetchImages();
+    return () => { cancelled = true; };
+  }, [recipes]);
 
   async function generarPlanes() {
     if (!supabase || !user) return;
@@ -476,6 +520,16 @@ export default function Recetas() {
 
             {selectedRecipe && (
               <div className="space-y-5 pt-1">
+                {/* Cover image */}
+                <div className="-mx-6 -mt-1 h-48 bg-gradient-to-br from-green-50 to-green-100 overflow-hidden">
+                  {recipeImages[selectedRecipe.id] && (
+                    <img
+                      src={recipeImages[selectedRecipe.id]}
+                      alt={selectedRecipe.nombre ?? ""}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </div>
                 {/* Meta */}
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   {(selectedRecipe.tiempo_minutos ?? selectedRecipe.tiempo_prep) ? (
@@ -1122,8 +1176,18 @@ export default function Recetas() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {recipes.map((r) => (
                   <Card key={r.id} className="overflow-hidden hover:shadow-md transition-all flex flex-col">
-                    <div style={{ height: "160px", background: "linear-gradient(135deg,#f0fdf4,#d1fae5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <BookOpen style={{ width: "56px", height: "56px", color: "#86efac" }} />
+                    <div className="relative overflow-hidden bg-gradient-to-br from-green-50 to-green-100" style={{ height: "160px" }}>
+                      {recipeImages[r.id] ? (
+                        <img
+                          src={recipeImages[r.id]}
+                          alt={r.nombre}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <BookOpen style={{ width: "56px", height: "56px", color: "#86efac" }} />
+                        </div>
+                      )}
                     </div>
                     <CardHeader className="pb-2">
                       <div className="flex items-start justify-between gap-2">
