@@ -125,6 +125,8 @@ const T: Record<Lang, Record<string, string>> = {
     "rec.alert_agotado": "Tu {nombre} se ha agotado. Recuerda anotarlo en tu próxima lista de compras.",
     "rec.alert_bajo": "Cuidado, ya casi se te acaba el {nombre} (quedan {n} {u}).",
     "rec.concepto": "Receta cocinada: {nombre}",
+    "rec.sin_pasos": "No hay pasos de preparación registrados para esta receta.",
+    "rec.sin_ingredientes": "No hay ingredientes registrados para esta receta.",
     // Suplementos
     "sup.title": "Suplementos",
     "sup.subtitle": "Rastrea tu inventario y toma diaria de suplementos.",
@@ -356,6 +358,8 @@ const T: Record<Lang, Record<string, string>> = {
     "rec.alert_agotado": "Your {nombre} is gone. Remember to add it to your next shopping list.",
     "rec.alert_bajo": "Watch out, your {nombre} is almost gone ({n} {u} left).",
     "rec.concepto": "Recipe cooked: {nombre}",
+    "rec.sin_pasos": "No preparation steps are recorded for this recipe.",
+    "rec.sin_ingredientes": "No ingredients are recorded for this recipe.",
     // Suplementos
     "sup.title": "Supplements",
     "sup.subtitle": "Track your inventory and daily supplement intake.",

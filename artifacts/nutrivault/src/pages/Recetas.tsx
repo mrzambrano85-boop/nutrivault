@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Clock, BookOpen, Users, Sparkles, ChevronDown, ChevronUp,
-  AlertCircle, RotateCcw, ChefHat, Check, AlertTriangle, Star,
+  AlertCircle, RotateCcw, ChefHat, Check, AlertTriangle, Star, Eye,
 } from "lucide-react";
 
 interface RecetaPlan {
@@ -129,6 +129,9 @@ export default function Recetas() {
   const [planesError, setPlanesError] = useState("");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState<any>(null);
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogStep, setDialogStep] = useState<"confirming" | "guardando" | "exito">("confirming");
   const [recetaActiva, setRecetaActiva] = useState<RecetaPlan | null>(null);
@@ -239,6 +242,43 @@ export default function Recetas() {
     setCookError("");
   }
 
+  function abrirDetalle(r: any) {
+    setSelectedRecipe(r);
+    setDetailOpen(true);
+  }
+
+  function cerrarDetalle() {
+    setDetailOpen(false);
+    setSelectedRecipe(null);
+  }
+
+  function getSavedIngredientes(r: any): string[] {
+    if (!Array.isArray(r?.ingredientes_necesarios)) return [];
+    return r.ingredientes_necesarios
+      .map((i: { cantidad?: number; unidad?: string; nombre?: string }) =>
+        [i.cantidad, i.unidad, i.nombre].filter(Boolean).join(" ")
+      )
+      .filter((s: string) => s.length > 0);
+  }
+
+  function getSavedPasos(r: any): string[] {
+    if (Array.isArray(r?.pasos) && r.pasos.length > 0) return r.pasos;
+    if (Array.isArray(r?.instrucciones) && r.instrucciones.length > 0) return r.instrucciones;
+    return [];
+  }
+
+  function abrirCocinarDesdDetalle(r: any) {
+    cerrarDetalle();
+    const ings = getSavedIngredientes(r);
+    abrirDialogoCocinar({
+      nombre: r.nombre ?? r.titulo ?? "",
+      ingredientes: ings,
+      pasos: getSavedPasos(r),
+      tiempo: r.tiempo_minutos ?? r.tiempo_prep ?? 0,
+      porciones: r.porciones ?? 1,
+    });
+  }
+
   function toggleReceta(key: string) {
     setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
   }
@@ -255,6 +295,99 @@ export default function Recetas() {
   return (
     <Layout>
       <div className="space-y-10">
+
+        {/* Recipe Detail Dialog */}
+        <Dialog open={detailOpen} onOpenChange={(v) => { if (!v) cerrarDetalle(); }}>
+          <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 pr-6">
+                <BookOpen className="h-5 w-5 text-primary shrink-0" />
+                <span className="line-clamp-2">{selectedRecipe?.nombre ?? selectedRecipe?.titulo}</span>
+              </DialogTitle>
+            </DialogHeader>
+
+            {selectedRecipe && (
+              <div className="space-y-5 pt-1">
+                {/* Meta */}
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  {(selectedRecipe.tiempo_minutos ?? selectedRecipe.tiempo_prep) ? (
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5" />
+                      {selectedRecipe.tiempo_minutos ?? selectedRecipe.tiempo_prep} {t("rec.min")}
+                    </span>
+                  ) : null}
+                  {selectedRecipe.porciones ? (
+                    <span className="flex items-center gap-1">
+                      <Users className="h-3.5 w-3.5" />
+                      {selectedRecipe.porciones} {t("rec.porciones")}
+                    </span>
+                  ) : null}
+                  {selectedRecipe.dificultad && (
+                    <span className={"text-xs px-2 py-0.5 rounded-full font-medium " + difColor(selectedRecipe.dificultad)}>
+                      {selectedRecipe.dificultad}
+                    </span>
+                  )}
+                </div>
+
+                {/* Description */}
+                {selectedRecipe.descripcion && (
+                  <p className="text-sm text-muted-foreground leading-relaxed">{selectedRecipe.descripcion}</p>
+                )}
+
+                {/* Ingredients */}
+                <div>
+                  <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">
+                    {t("rec.lbl_ingredientes")}
+                  </p>
+                  {getSavedIngredientes(selectedRecipe).length === 0 ? (
+                    <p className="text-sm text-muted-foreground italic">{t("rec.sin_ingredientes")}</p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {getSavedIngredientes(selectedRecipe).map((ing, i) => (
+                        <li key={i} className="text-sm flex items-start gap-2">
+                          <span className="text-primary mt-1">·</span> {ing}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                {/* Preparation Steps */}
+                <div>
+                  <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">
+                    {t("rec.lbl_preparacion")}
+                  </p>
+                  {getSavedPasos(selectedRecipe).length === 0 ? (
+                    <p className="text-sm text-muted-foreground italic">{t("rec.sin_pasos")}</p>
+                  ) : (
+                    <ol className="space-y-2">
+                      {getSavedPasos(selectedRecipe).map((paso, i) => (
+                        <li key={i} className="text-sm flex items-start gap-3">
+                          <span className="h-5 w-5 rounded-full bg-primary/15 text-primary text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                            {i + 1}
+                          </span>
+                          {paso}
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </div>
+
+                {/* Cook button */}
+                <div className="pt-2 border-t">
+                  <Button
+                    className="w-full"
+                    onClick={() => abrirCocinarDesdDetalle(selectedRecipe)}
+                    data-testid="button-cocinar-from-detail"
+                  >
+                    <ChefHat className="h-4 w-4 mr-2" />
+                    {t("rec.btn_cocinar")}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Cooking Dialog */}
         <Dialog open={dialogOpen} onOpenChange={(v) => { if (!v) cerrarDialogo(); }}>
@@ -560,29 +693,25 @@ export default function Recetas() {
                         <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {r.tiempo_minutos} {t("rec.min")}</span>
                         <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {r.porciones} {t("rec.porciones").slice(0, 4)}.</span>
                       </div>
-                      <Button
-                        variant="outline"
-                        className="w-full border-primary/40 text-primary hover:bg-primary hover:text-white transition-colors"
-                        onClick={() => {
-                          const ings: string[] = Array.isArray(r.ingredientes_necesarios)
-                            ? r.ingredientes_necesarios
-                                .map((i: { cantidad?: number; unidad?: string; nombre?: string }) =>
-                                  [i.cantidad, i.unidad, i.nombre].filter(Boolean).join(" ")
-                                )
-                                .filter((s: string) => s.length > 0)
-                            : [];
-                          abrirDialogoCocinar({
-                            nombre: r.nombre ?? r.titulo ?? "",
-                            ingredientes: ings,
-                            pasos: [],
-                            tiempo: r.tiempo_minutos ?? r.tiempo_prep ?? 0,
-                            porciones: r.porciones ?? 1,
-                          });
-                        }}
-                      >
-                        <ChefHat className="h-4 w-4 mr-2" />
-                        {t("rec.btn_cocinar")}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          className="flex-1"
+                          onClick={() => abrirDetalle(r)}
+                          data-testid={`button-ver-${r.id}`}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          {t("rec.btn_ver")}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="border-primary/40 text-primary hover:bg-primary hover:text-white transition-colors px-3"
+                          onClick={() => abrirCocinarDesdDetalle(r)}
+                          data-testid={`button-cocinar-card-${r.id}`}
+                          title={t("rec.btn_cocinar")}
+                        >
+                          <ChefHat className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
