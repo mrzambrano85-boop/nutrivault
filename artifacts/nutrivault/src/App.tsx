@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { I18nProvider } from "@/context/I18nContext";
+import { PlanProvider } from "@/context/PlanContext";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
 import Perfil from "@/pages/Perfil";
@@ -55,7 +56,9 @@ function App() {
         <I18nProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <AuthProvider>
-              <Router />
+              <PlanProvider>
+                <Router />
+              </PlanProvider>
             </AuthProvider>
           </WouterRouter>
           <Toaster />

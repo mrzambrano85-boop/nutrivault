@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Pill, ScanLine, Camera, Upload, RotateCcw, Check, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import { PremiumGate } from "@/components/PremiumGate";
 
 const FREC_POR_DIA: Record<string, number> = { "1": 1, "2": 2, "3": 3, "3c": 3 };
 
@@ -234,18 +235,20 @@ export default function Suplementos() {
           {/* CHOICE */}
           {dialogMode === "choice" && (
             <div className="space-y-3 mt-2">
-              <button
-                onClick={() => setDialogMode("scanning")}
-                className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all text-left"
-              >
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <ScanLine className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-semibold">{t("sup.choice_scan_title")}</p>
-                  <p className="text-sm text-muted-foreground">{t("sup.choice_scan_desc")}</p>
-                </div>
-              </button>
+              <PremiumGate>
+                <button
+                  onClick={() => setDialogMode("scanning")}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all text-left"
+                >
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <ScanLine className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold">{t("sup.choice_scan_title")}</p>
+                    <p className="text-sm text-muted-foreground">{t("sup.choice_scan_desc")}</p>
+                  </div>
+                </button>
+              </PremiumGate>
               <button
                 onClick={() => setDialogMode("form")}
                 className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-muted hover:border-muted-foreground/30 hover:bg-muted/30 transition-all text-left"
