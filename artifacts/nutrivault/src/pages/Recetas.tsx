@@ -389,7 +389,10 @@ export default function Recetas() {
         puntuacion: reviewRating,
         notas: reviewNotes.trim() || null,
       });
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error("[Reviews] Supabase error:", error.code, error.message);
+        throw new Error(error.message);
+      }
       if (recetaActivaId) {
         setReviews((prev) => ({
           ...prev,
@@ -397,8 +400,10 @@ export default function Recetas() {
         }));
       }
       cerrarDialogo();
-    } catch {
-      setReviewError(t("rec.review_error"));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[Reviews] guardarReview failed:", msg);
+      setReviewError(msg);
     } finally {
       setReviewGuardando(false);
     }
