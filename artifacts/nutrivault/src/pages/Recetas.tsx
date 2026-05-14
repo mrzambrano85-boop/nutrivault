@@ -19,35 +19,19 @@ import {
   Plus, Trash2, PenLine,
 } from "lucide-react";
 
-const UNSPLASH_KEY = import.meta.env.VITE_UNSPLASH_ACCESS_KEY as string | undefined;
-const unsplashCache = new Map<string, string>();
+const RECIPE_IMAGES: Record<string, string> = {
+  "b99e9ca7-58f0-460d-8e6d-99d08051e93c": "https://images.unsplash.com/photo-1598103442097-8b74394b95c8?w=400",
+  "123bf8f2-c080-4efa-9a8f-381120472ad0": "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400",
+  "40dfba21-3d8a-44b2-aaf7-cd63582707ef": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400",
+  "861c0d9c-baf0-4196-a14b-66c57fe300c2": "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=400",
+  "3a9b14bf-f8a1-4a98-b0af-7757fdcff502": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400",
+  "bda648ed-69e1-4d2b-b3b1-8725eec0539a": "https://images.unsplash.com/photo-1517673132405-a56a62b18caf?w=400",
+  "98ddd8a8-6b70-4f6f-bc0a-491ddfc6fb60": "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400",
+  "c3ff4e6a-c02c-4839-a05b-83eade7fdb68": "https://images.unsplash.com/photo-1494597564530-871f2b93ac55?w=400",
+};
 
-console.log("[Unsplash] Key present:", !!UNSPLASH_KEY, "| Length:", UNSPLASH_KEY?.length ?? 0);
-
-async function fetchUnsplashImage(query: string): Promise<string | null> {
-  if (!UNSPLASH_KEY) {
-    console.warn("[Unsplash] VITE_UNSPLASH_ACCESS_KEY is not set — skipping image fetch");
-    return null;
-  }
-  if (unsplashCache.has(query)) return unsplashCache.get(query) || null;
-  unsplashCache.set(query, ""); // reserve slot while fetching
-  try {
-    const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape&client_id=${UNSPLASH_KEY}`;
-    const res = await fetch(url);
-    console.log(`[Unsplash] query="${query}" → status ${res.status}`);
-    if (!res.ok) {
-      const body = await res.text();
-      console.error("[Unsplash] Error body:", body);
-      return null;
-    }
-    const data = await res.json();
-    const imageUrl: string | null = data.results?.[0]?.urls?.small ?? null;
-    if (imageUrl) unsplashCache.set(query, imageUrl);
-    return imageUrl;
-  } catch (err) {
-    console.error("[Unsplash] Fetch threw:", err);
-    return null;
-  }
+function getRecipeImage(r: { id?: string; imagen_url?: string | null }): string | null {
+  return r.imagen_url ?? (r.id ? (RECIPE_IMAGES[r.id] ?? null) : null);
 }
 
 interface IngEstructurado {
@@ -182,7 +166,6 @@ export default function Recetas() {
   const { t } = useI18n();
   const [recipes, setRecipes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [recipeImages, setRecipeImages] = useState<Record<string, string>>({});
 
   const [generando, setGenerando] = useState(false);
   const [planes, setPlanes] = useState<Plan[]>([]);
@@ -255,26 +238,6 @@ export default function Recetas() {
     load();
   }, [user]);
 
-  useEffect(() => {
-    if (!UNSPLASH_KEY || recipes.length === 0) return;
-    let cancelled = false;
-    const fetchImages = async () => {
-      const results = await Promise.all(
-        recipes.map(async (r) => {
-          const url = await fetchUnsplashImage(r.nombre ?? "comida saludable");
-          return { id: r.id as string, url };
-        })
-      );
-      if (cancelled) return;
-      const map: Record<string, string> = {};
-      for (const { id, url } of results) {
-        if (url) map[id] = url;
-      }
-      setRecipeImages((prev) => ({ ...prev, ...map }));
-    };
-    fetchImages();
-    return () => { cancelled = true; };
-  }, [recipes]);
 
   async function generarPlanes() {
     if (!supabase || !user) return;
@@ -582,9 +545,9 @@ export default function Recetas() {
               <div className="space-y-5 pt-1">
                 {/* Cover image */}
                 <div className="-mx-6 -mt-1 h-48 bg-gradient-to-br from-green-50 to-green-100 overflow-hidden">
-                  {recipeImages[selectedRecipe.id] && (
+                  {getRecipeImage(selectedRecipe) && (
                     <img
-                      src={recipeImages[selectedRecipe.id]}
+                      src={getRecipeImage(selectedRecipe)!}
                       alt={selectedRecipe.nombre ?? ""}
                       className="w-full h-full object-cover"
                     />
@@ -1263,9 +1226,9 @@ export default function Recetas() {
                 {recipes.map((r) => (
                   <Card key={r.id} className="overflow-hidden hover:shadow-md transition-all flex flex-col">
                     <div className="relative overflow-hidden bg-gradient-to-br from-green-50 to-green-100" style={{ height: "160px" }}>
-                      {recipeImages[r.id] ? (
+                      {getRecipeImage(r) ? (
                         <img
-                          src={recipeImages[r.id]}
+                          src={getRecipeImage(r)!}
                           alt={r.nombre}
                           className="w-full h-full object-cover"
                         />
