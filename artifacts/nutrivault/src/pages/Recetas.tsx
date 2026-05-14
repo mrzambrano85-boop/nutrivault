@@ -208,6 +208,7 @@ export default function Recetas() {
   const [recetaActiva, setRecetaActiva] = useState<RecetaPlan | null>(null);
   const [recetaActivaId, setRecetaActivaId] = useState<string | null>(null);
   const [matches, setMatches] = useState<IngMatch[]>([]);
+  const [editedAmounts, setEditedAmounts] = useState<number[]>([]);
   const [alertas, setAlertas] = useState<string[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(false);
   const [cookError, setCookError] = useState("");
@@ -320,7 +321,9 @@ export default function Recetas() {
     try {
       const { data } = await supabase
         .from("ingredientes").select("id, nombre, cantidad, unidad").eq("usuario_id", user.id);
-      setMatches(buildMatches(receta, data ?? []));
+      const built = buildMatches(receta, data ?? []);
+      setMatches(built);
+      setEditedAmounts(built.map((m) => m.cantidadDeducir));
     } catch {
       setCookError(t("rec.no_cargar"));
     } finally {
@@ -333,29 +336,32 @@ export default function Recetas() {
     setDialogStep("guardando");
     setCookError("");
     try {
-      const matchesConItem = matches.filter((m) => m.despensaItem !== null);
-      for (const m of matchesConItem) {
-        if (m.cantidadDeducir <= 0) continue;
+      const nuevasAlertas: string[] = [];
+      for (let i = 0; i < matches.length; i++) {
+        const m = matches[i];
+        if (!m.despensaItem) continue;
+        const deducir = Math.min(Math.max(0, editedAmounts[i] ?? m.cantidadDeducir), m.despensaItem.cantidad);
+        if (deducir <= 0) continue;
+        const nuevaCantidad = Math.max(0, m.despensaItem.cantidad - deducir);
         const { error } = await supabase
           .from("ingredientes")
-          .update({ cantidad: m.nuevaCantidad })
-          .eq("id", m.despensaItem!.id)
+          .update({ cantidad: nuevaCantidad })
+          .eq("id", m.despensaItem.id)
           .eq("usuario_id", user.id);
         if (error) throw new Error(error.message);
+        const esBajo = nuevaCantidad < m.despensaItem.cantidad * UMBRAL_BAJO && nuevaCantidad > 0;
+        const seAgota = nuevaCantidad <= 0;
+        if (seAgota) {
+          nuevasAlertas.push(t("rec.alert_agotado", { nombre: m.despensaItem.nombre }));
+        } else if (esBajo) {
+          nuevasAlertas.push(t("rec.alert_bajo", { nombre: m.despensaItem.nombre, n: nuevaCantidad, u: m.despensaItem.unidad }));
+        }
       }
       await supabase.from("puntos").insert({
         usuario_id: user.id,
         concepto: t("rec.concepto", { nombre: recetaActiva.nombre }),
         cantidad: PUNTOS_POR_RECETA,
       });
-      const nuevasAlertas: string[] = [];
-      for (const m of matchesConItem) {
-        if (m.seAgota) {
-          nuevasAlertas.push(t("rec.alert_agotado", { nombre: m.despensaItem!.nombre }));
-        } else if (m.esBajo) {
-          nuevasAlertas.push(t("rec.alert_bajo", { nombre: m.despensaItem!.nombre, n: m.nuevaCantidad, u: m.despensaItem!.unidad }));
-        }
-      }
       setAlertas(nuevasAlertas);
       setDialogStep("exito");
     } catch (err: unknown) {
@@ -369,6 +375,7 @@ export default function Recetas() {
     setRecetaActiva(null);
     setRecetaActivaId(null);
     setMatches([]);
+    setEditedAmounts([]);
     setAlertas([]);
     setCookError("");
     setReviewRating(0);
@@ -718,22 +725,44 @@ export default function Recetas() {
                           <p className="text-sm text-muted-foreground italic">{t("rec.no_match")}</p>
                         ) : (
                           <div className="space-y-2">
-                            {matchesConItem.map((m, i) => (
-                              <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/40 text-sm">
-                                <div>
-                                  <p className="font-medium">{m.despensaItem!.nombre}</p>
-                                  <p className="text-muted-foreground text-xs mt-0.5">{m.recetaTexto}</p>
-                                </div>
-                                <div className="text-right shrink-0 ml-4">
-                                  <p className="font-semibold text-destructive">
-                                    -{m.cantidadDeducir} {m.despensaItem!.unidad}
-                                  </p>
+                            {matches.map((m, i) => {
+                              if (!m.despensaItem) return null;
+                              const edited = editedAmounts[i] ?? m.cantidadDeducir;
+                              const deducir = Math.min(Math.max(0, edited), m.despensaItem.cantidad);
+                              const quedan = Math.max(0, m.despensaItem.cantidad - deducir);
+                              return (
+                                <div key={i} className="p-3 rounded-lg bg-muted/40 text-sm space-y-2">
+                                  <div className="flex items-start justify-between gap-4">
+                                    <div className="min-w-0">
+                                      <p className="font-medium">{m.despensaItem.nombre}</p>
+                                      <p className="text-muted-foreground text-xs mt-0.5">{m.recetaTexto}</p>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      <Input
+                                        type="number"
+                                        min={0}
+                                        max={m.despensaItem.cantidad}
+                                        step="any"
+                                        value={edited}
+                                        onChange={(e) => {
+                                          const val = parseFloat(e.target.value);
+                                          setEditedAmounts((prev) => {
+                                            const next = [...prev];
+                                            next[i] = isNaN(val) ? 0 : val;
+                                            return next;
+                                          });
+                                        }}
+                                        className="w-20 h-7 text-sm text-right px-2"
+                                      />
+                                      <span className="text-muted-foreground text-xs">{m.despensaItem.unidad}</span>
+                                    </div>
+                                  </div>
                                   <p className="text-xs text-muted-foreground">
-                                    {t("rec.quedaran", { n: m.nuevaCantidad, u: m.despensaItem!.unidad })}
+                                    {t("rec.quedaran", { n: +quedan.toFixed(2), u: m.despensaItem.unidad })}
                                   </p>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
                       </div>
