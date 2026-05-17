@@ -1,31 +1,87 @@
-kind = "web"
-previewPath = "/"
-title = "NutriVault"
-version = "1.0.0"
-id = "artifacts/nutrivault"
-router = "path"
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 
-[[integratedSkills]]
-name = "react-vite"
-version = "1.0.0"
+type Plan = "free" | "trial" | "premium";
 
-[[services]]
-name = "web"
-paths = [ "/" ]
-localPort = 20715
+interface PlanContextType {
+  plan: Plan;
+  isPremium: boolean;
+  isTrialActive: boolean;
+  trialDaysLeft: number;
+  loadingPlan: boolean;
+  refreshPlan: () => Promise<void>;
+}
 
-[services.development]
-run = "pnpm --filter @workspace/nutrivault run dev"
+const PlanContext = createContext<PlanContextType>({
+  plan: "free",
+  isPremium: false,
+  isTrialActive: false,
+  trialDaysLeft: 0,
+  loadingPlan: true,
+  refreshPlan: async () => {},
+});
 
-[services.production]
-build = [ "pnpm", "--filter", "@workspace/nutrivault", "run", "build" ]
-publicDir = "artifacts/nutrivault/dist/public"
-serve = "static"
+export function PlanProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const [plan, setPlan] = useState<Plan>("free");
+  const [planExpiraEn, setPlanExpiraEn] = useState<string | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState(true);
 
-[[services.production.rewrites]]
-from = "/*"
-to = "/index.html"
+  const fetchPlan = useCallback(async (userId: string) => {
+    if (!supabase) { setLoadingPlan(false); return; }
+    const { data } = await supabase
+      .from("usuarios")
+      .select("plan, plan_expira_en")
+      .eq("id", userId)
+      .single();
 
-[services.env]
-PORT = "20715"
-BASE_PATH = "/"
+    setPlan(data?.plan ?? "free");
+    setPlanExpiraEn(data?.plan_expira_en ?? null);
+    setLoadingPlan(false);
+  }, []);
+
+  const refreshPlan = useCallback(async () => {
+    if (!user) return;
+    await fetchPlan(user.id);
+  }, [user, fetchPlan]);
+
+  useEffect(() => {
+    if (!user) { setLoadingPlan(false); return; }
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("payment") === "success") {
+      const upgradePlan = async () => {
+        if (!supabase) return;
+        await supabase
+          .from("usuarios")
+          .update({ plan: "premium", plan_expira_en: null })
+          .eq("id", user.id);
+        const url = new URL(window.location.href);
+        url.searchParams.delete("payment");
+        window.history.replaceState({}, "", url.toString());
+        setPlan("premium");
+        setPlanExpiraEn(null);
+        setLoadingPlan(false);
+      };
+      upgradePlan();
+      return;
+    }
+
+    fetchPlan(user.id);
+  }, [user, fetchPlan]);
+
+  // Calcular si el trial está activo y cuántos días quedan
+  const now = new Date();
+  const expira = planExpiraEn ? new Date(planExpiraEn) : null;
+  const isTrialActive = plan === "trial" && expira !== null && expira > now;
+  const trialDaysLeft = isTrialActive
+    ? Math.ceil((expira!.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
+
+  // isPremium = true si es premium O si tiene trial activo
+  const isPremium = plan === "premium" || isTrialActive;
+
+  return (
+    <PlanContext.Provider value={{ plan, isPremium, isTrialActive, trialDaysLeft, loadingPla
+  

@@ -1,7 +1,12 @@
 import { useState, cloneElement, isValidElement } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Check, X, Sparkles, Lock } from "lucide-react";
+import { Check, Sparkles, Lock } from "lucide-react";
 import { usePlan } from "@/context/PlanContext";
 import { useAuth } from "@/context/AuthContext";
 
@@ -26,40 +31,43 @@ interface PremiumGateProps {
 }
 
 export function PremiumGate({ children }: PremiumGateProps) {
-  const { plan, loadingPlan } = usePlan();
+  const { isPremium, isTrialActive, trialDaysLeft, loadingPlan } = usePlan();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const [stripeError, setStripeError] = useState("");
 
+  // Si está cargando o tiene acceso (premium o trial activo), muestra el contenido
   if (loadingPlan) return children;
-  if (plan === "premium") return children;
+  if (isPremium) return children;
 
   async function handleUpgrade() {
     setStripeError("");
     setRedirecting(true);
-    const pk = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
+    const pk = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as
+      | string
+      | undefined;
     const priceId = import.meta.env.VITE_STRIPE_PRICE_ID as string | undefined;
-
     if (!pk || !priceId) {
-      setStripeError("Configuración de pago no disponible. Contacta al soporte.");
+      setStripeError(
+        "Configuración de pago no disponible. Contacta al soporte.",
+      );
       setRedirecting(false);
       return;
     }
-
     const stripeJs = (window as any).Stripe;
     if (!stripeJs) {
-      setStripeError("No se pudo cargar el sistema de pagos. Recarga la página.");
+      setStripeError(
+        "No se pudo cargar el sistema de pagos. Recarga la página.",
+      );
       setRedirecting(false);
       return;
     }
-
     const stripe = stripeJs(pk);
     const base = import.meta.env.BASE_URL as string;
     const origin = window.location.origin;
     const successUrl = `${origin}${base.replace(/\/$/, "")}/?payment=success`;
     const cancelUrl = window.location.href;
-
     const { error } = await stripe.redirectToCheckout({
       lineItems: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
@@ -67,7 +75,6 @@ export function PremiumGate({ children }: PremiumGateProps) {
       cancelUrl,
       customerEmail: user?.email,
     });
-
     if (error) {
       setStripeError(error.message ?? "Error al redirigir al pago.");
       setRedirecting(false);
@@ -90,7 +97,6 @@ export function PremiumGate({ children }: PremiumGateProps) {
         {trigger}
         <Lock className="absolute top-3 right-3 h-4 w-4 text-amber-500 pointer-events-none" />
       </span>
-
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -100,9 +106,19 @@ export function PremiumGate({ children }: PremiumGateProps) {
             </DialogTitle>
           </DialogHeader>
 
+          {/* Banner trial expirado */}
+          {!isTrialActive && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
+              Tu período de prueba ha terminado. Activa Premium para seguir
+              usando todas las funciones.
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4 mt-2">
             <div className="rounded-xl border p-4 bg-muted/30">
-              <p className="font-semibold text-sm text-muted-foreground mb-3 uppercase tracking-wide">Gratis</p>
+              <p className="font-semibold text-sm text-muted-foreground mb-3 uppercase tracking-wide">
+                Gratis
+              </p>
               <ul className="space-y-2">
                 {FREE_FEATURES.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-sm">
@@ -113,12 +129,13 @@ export function PremiumGate({ children }: PremiumGateProps) {
               </ul>
               <p className="mt-4 font-bold text-lg">$0</p>
             </div>
-
             <div className="rounded-xl border-2 border-primary p-4 bg-primary/5 relative">
               <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white text-xs font-semibold px-3 py-0.5 rounded-full">
                 Recomendado
               </span>
-              <p className="font-semibold text-sm text-primary mb-3 uppercase tracking-wide">Premium</p>
+              <p className="font-semibold text-sm text-primary mb-3 uppercase tracking-wide">
+                Premium
+              </p>
               <ul className="space-y-2">
                 {PREMIUM_FEATURES.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-sm">
@@ -128,7 +145,10 @@ export function PremiumGate({ children }: PremiumGateProps) {
                 ))}
               </ul>
               <p className="mt-4 font-bold text-lg">
-                $9.99 <span className="text-sm font-normal text-muted-foreground">/mes</span>
+                $9.99{" "}
+                <span className="text-sm font-normal text-muted-foreground">
+                  /mes
+                </span>
               </p>
             </div>
           </div>
@@ -138,7 +158,6 @@ export function PremiumGate({ children }: PremiumGateProps) {
               {stripeError}
             </p>
           )}
-
           <div className="flex flex-col gap-2 mt-2">
             <Button
               className="w-full gap-2"
@@ -146,9 +165,13 @@ export function PremiumGate({ children }: PremiumGateProps) {
               disabled={redirecting}
             >
               <Sparkles className="h-4 w-4" />
-              {redirecting ? "Redirigiendo..." : "Actualizar a Premium"}
+              {redirecting ? "Redirigiendo..." : "Activar Premium — $9.99/mes"}
             </Button>
-            <Button variant="ghost" className="w-full" onClick={() => setOpen(false)}>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => setOpen(false)}
+            >
               Continuar con plan gratis
             </Button>
           </div>

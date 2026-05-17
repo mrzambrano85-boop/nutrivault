@@ -19,15 +19,16 @@ import {
   Plus, Trash2, PenLine,
 } from "lucide-react";
 
+// ─── FIX MÓVIL: auto=format&fit=crop para compatibilidad con Safari iOS ───────
 const RECIPE_IMAGES: Record<string, string> = {
-  "b99e9ca7-58f0-460d-8e6d-99d08051e93c": "https://images.unsplash.com/photo-1598103442097-8b74394b95c8?w=400",
-  "123bf8f2-c080-4efa-9a8f-381120472ad0": "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400",
-  "40dfba21-3d8a-44b2-aaf7-cd63582707ef": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400",
-  "861c0d9c-baf0-4196-a14b-66c57fe300c2": "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=400",
-  "3a9b14bf-f8a1-4a98-b0af-7757fdcff502": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400",
-  "bda648ed-69e1-4d2b-b3b1-8725eec0539a": "https://images.unsplash.com/photo-1517673132405-a56a62b18caf?w=400",
-  "98ddd8a8-6b70-4f6f-bc0a-491ddfc6fb60": "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400",
-  "c3ff4e6a-c02c-4839-a05b-83eade7fdb68": "https://images.unsplash.com/photo-1494597564530-871f2b93ac55?w=400",
+  "b99e9ca7-58f0-460d-8e6d-99d08051e93c": "https://images.unsplash.com/photo-1598103442097-8b74394b95c8?w=400&auto=format&fit=crop",
+  "123bf8f2-c080-4efa-9a8f-381120472ad0": "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400&auto=format&fit=crop",
+  "40dfba21-3d8a-44b2-aaf7-cd63582707ef": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&auto=format&fit=crop",
+  "861c0d9c-baf0-4196-a14b-66c57fe300c2": "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=400&auto=format&fit=crop",
+  "3a9b14bf-f8a1-4a98-b0af-7757fdcff502": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop",
+  "bda648ed-69e1-4d2b-b3b1-8725eec0539a": "https://images.unsplash.com/photo-1517673132405-a56a62b18caf?w=400&auto=format&fit=crop",
+  "98ddd8a8-6b70-4f6f-bc0a-491ddfc6fb60": "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&auto=format&fit=crop",
+  "c3ff4e6a-c02c-4839-a05b-83eade7fdb68": "https://images.unsplash.com/photo-1494597564530-871f2b93ac55?w=400&auto=format&fit=crop",
 };
 
 function getRecipeImage(r: { id?: string; imagen_url?: string | null }): string | null {
@@ -237,7 +238,6 @@ export default function Recetas() {
     }
     load();
   }, [user]);
-
 
   async function generarPlanes() {
     if (!supabase || !user) return;
@@ -543,16 +543,21 @@ export default function Recetas() {
 
             {selectedRecipe && (
               <div className="space-y-5 pt-1">
-                {/* Cover image */}
+                {/* Cover image — FIX MÓVIL: onError fallback */}
                 <div className="-mx-6 -mt-1 h-48 bg-gradient-to-br from-green-50 to-green-100 overflow-hidden">
                   {getRecipeImage(selectedRecipe) && (
                     <img
                       src={getRecipeImage(selectedRecipe)!}
                       alt={selectedRecipe.nombre ?? ""}
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
                     />
                   )}
                 </div>
+
                 {/* Meta */}
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   {(selectedRecipe.tiempo_minutos ?? selectedRecipe.tiempo_prep) ? (
@@ -679,77 +684,77 @@ export default function Recetas() {
                         <p className="text-sm text-amber-700">{t("rec.sin_ingredientes")}</p>
                       </div>
                     ) : (
-                    <>
-                      <div>
-                        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                          {t("rec.se_descontaran")}
-                        </p>
-                        {matchesConItem.length === 0 ? (
-                          <p className="text-sm text-muted-foreground italic">{t("rec.no_match")}</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {matches.map((m, i) => {
-                              if (!m.despensaItem) return null;
-                              const edited = editedAmounts[i] ?? m.cantidadDeducir;
-                              const deducir = Math.min(Math.max(0, edited), m.despensaItem.cantidad);
-                              const quedan = Math.max(0, m.despensaItem.cantidad - deducir);
-                              return (
-                                <div key={i} className="p-3 rounded-lg bg-muted/40 text-sm space-y-2">
-                                  <div className="flex items-start justify-between gap-4">
-                                    <div className="min-w-0">
-                                      <p className="font-medium">{m.despensaItem.nombre}</p>
-                                      <p className="text-muted-foreground text-xs mt-0.5">{m.recetaTexto}</p>
+                      <>
+                        <div>
+                          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                            {t("rec.se_descontaran")}
+                          </p>
+                          {matchesConItem.length === 0 ? (
+                            <p className="text-sm text-muted-foreground italic">{t("rec.no_match")}</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {matches.map((m, i) => {
+                                if (!m.despensaItem) return null;
+                                const edited = editedAmounts[i] ?? m.cantidadDeducir;
+                                const deducir = Math.min(Math.max(0, edited), m.despensaItem.cantidad);
+                                const quedan = Math.max(0, m.despensaItem.cantidad - deducir);
+                                return (
+                                  <div key={i} className="p-3 rounded-lg bg-muted/40 text-sm space-y-2">
+                                    <div className="flex items-start justify-between gap-4">
+                                      <div className="min-w-0">
+                                        <p className="font-medium">{m.despensaItem.nombre}</p>
+                                        <p className="text-muted-foreground text-xs mt-0.5">{m.recetaTexto}</p>
+                                      </div>
+                                      <div className="flex items-center gap-1.5 shrink-0">
+                                        <Input
+                                          type="number"
+                                          min={0}
+                                          max={m.despensaItem.cantidad}
+                                          step="any"
+                                          value={edited}
+                                          onChange={(e) => {
+                                            const val = parseFloat(e.target.value);
+                                            setEditedAmounts((prev) => {
+                                              const next = [...prev];
+                                              next[i] = isNaN(val) ? 0 : val;
+                                              return next;
+                                            });
+                                          }}
+                                          className="w-20 h-7 text-sm text-right px-2"
+                                        />
+                                        <span className="text-muted-foreground text-xs">{m.despensaItem.unidad}</span>
+                                      </div>
                                     </div>
-                                    <div className="flex items-center gap-1.5 shrink-0">
-                                      <Input
-                                        type="number"
-                                        min={0}
-                                        max={m.despensaItem.cantidad}
-                                        step="any"
-                                        value={edited}
-                                        onChange={(e) => {
-                                          const val = parseFloat(e.target.value);
-                                          setEditedAmounts((prev) => {
-                                            const next = [...prev];
-                                            next[i] = isNaN(val) ? 0 : val;
-                                            return next;
-                                          });
-                                        }}
-                                        className="w-20 h-7 text-sm text-right px-2"
-                                      />
-                                      <span className="text-muted-foreground text-xs">{m.despensaItem.unidad}</span>
-                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                      {t("rec.quedaran", { n: +quedan.toFixed(2), u: m.despensaItem.unidad })}
+                                    </p>
                                   </div>
-                                  <p className="text-xs text-muted-foreground">
-                                    {t("rec.quedaran", { n: +quedan.toFixed(2), u: m.despensaItem.unidad })}
-                                  </p>
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        {matchesSinItem.length > 0 && (
+                          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
+                              <p className="text-sm font-semibold text-red-700">
+                                {t("rec.faltan_ingredientes", { n: matchesSinItem.length })}
+                              </p>
+                            </div>
+                            <p className="text-xs text-red-600">{t("rec.faltan_msg")}</p>
+                            <ul className="space-y-1 mt-1">
+                              {matchesSinItem.map((m, i) => (
+                                <li key={i} className="text-sm text-red-800 flex items-center gap-2">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
+                                  {m.recetaTexto}
+                                </li>
+                              ))}
+                            </ul>
                           </div>
                         )}
-                      </div>
-
-                      {matchesSinItem.length > 0 && (
-                        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 space-y-2">
-                          <div className="flex items-center gap-2">
-                            <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
-                            <p className="text-sm font-semibold text-red-700">
-                              {t("rec.faltan_ingredientes", { n: matchesSinItem.length })}
-                            </p>
-                          </div>
-                          <p className="text-xs text-red-600">{t("rec.faltan_msg")}</p>
-                          <ul className="space-y-1 mt-1">
-                            {matchesSinItem.map((m, i) => (
-                              <li key={i} className="text-sm text-red-800 flex items-center gap-2">
-                                <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
-                                {m.recetaTexto}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </>
+                      </>
                     )}
 
                     <div className="rounded-lg bg-primary/10 border border-primary/20 px-4 py-3 flex items-center gap-3">
@@ -894,7 +899,6 @@ export default function Recetas() {
             </DialogHeader>
 
             <div className="space-y-5 pt-1">
-              {/* Nombre */}
               <div className="space-y-1.5">
                 <Label htmlFor="nueva-nombre">{t("rec.lbl_nombre")}</Label>
                 <Input
@@ -906,7 +910,6 @@ export default function Recetas() {
                 />
               </div>
 
-              {/* Descripcion */}
               <div className="space-y-1.5">
                 <Label htmlFor="nueva-desc">{t("rec.lbl_descripcion")}</Label>
                 <Textarea
@@ -918,7 +921,6 @@ export default function Recetas() {
                 />
               </div>
 
-              {/* Tiempo + Porciones */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="nueva-tiempo">{t("rec.lbl_tiempo")}</Label>
@@ -944,7 +946,6 @@ export default function Recetas() {
                 </div>
               </div>
 
-              {/* Ingredientes */}
               <div className="space-y-2">
                 <Label>{t("rec.lbl_ingredientes")}</Label>
                 <div className="space-y-2">
@@ -991,7 +992,6 @@ export default function Recetas() {
                 </Button>
               </div>
 
-              {/* Pasos */}
               <div className="space-y-2">
                 <Label>{t("rec.lbl_pasos")}</Label>
                 <div className="space-y-2">
@@ -1204,91 +1204,103 @@ export default function Recetas() {
               {t("rec.btn_nueva")}
             </Button>
           </div>
-            {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[1,2,3].map((i) => <Card key={i} className="animate-pulse h-64 bg-muted" />)}
-              </div>
-            ) : recipes.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="flex flex-col items-center justify-center p-10 text-center">
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                    <BookOpen className="h-6 w-6 text-primary" />
+
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1,2,3].map((i) => <Card key={i} className="animate-pulse h-64 bg-muted" />)}
+            </div>
+          ) : recipes.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center p-10 text-center">
+                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <BookOpen className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-lg font-medium">{t("rec.saved_title")}</h3>
+                <p className="text-muted-foreground mt-2 max-w-sm text-sm">{t("rec.saved_subtitle")}</p>
+                <Button className="mt-4" onClick={abrirNueva} data-testid="button-nueva-receta-empty">
+                  <Plus className="h-4 w-4 mr-2" /> {t("rec.btn_nueva")}
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recipes.map((r) => (
+                <Card key={r.id} className="overflow-hidden hover:shadow-md transition-all flex flex-col">
+                  {/* FIX MÓVIL: onError fallback + loading lazy */}
+                  <div className="relative overflow-hidden bg-gradient-to-br from-green-50 to-green-100" style={{ height: "160px" }}>
+                    {getRecipeImage(r) ? (
+                      <img
+                        src={getRecipeImage(r)!}
+                        alt={r.nombre}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <BookOpen style={{ width: "56px", height: "56px", color: "#86efac" }} />
+                      </div>
+                    )}
                   </div>
-                  <h3 className="text-lg font-medium">{t("rec.saved_title")}</h3>
-                  <p className="text-muted-foreground mt-2 max-w-sm text-sm">{t("rec.saved_subtitle")}</p>
-                  <Button className="mt-4" onClick={abrirNueva} data-testid="button-nueva-receta-empty">
-                    <Plus className="h-4 w-4 mr-2" /> {t("rec.btn_nueva")}
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {recipes.map((r) => (
-                  <Card key={r.id} className="overflow-hidden hover:shadow-md transition-all flex flex-col">
-                    <div className="relative overflow-hidden bg-gradient-to-br from-green-50 to-green-100" style={{ height: "160px" }}>
-                      {getRecipeImage(r) ? (
-                        <img
-                          src={getRecipeImage(r)!}
-                          alt={r.nombre}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <BookOpen style={{ width: "56px", height: "56px", color: "#86efac" }} />
-                        </div>
+
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="text-lg line-clamp-1">{r.nombre}</CardTitle>
+                      {r.dificultad && (
+                        <span className={"text-xs px-2 py-0.5 rounded-full font-medium shrink-0 " + difColor(r.dificultad)}>
+                          {r.dificultad}
+                        </span>
                       )}
                     </div>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-lg line-clamp-1">{r.nombre}</CardTitle>
-                        {r.dificultad && (
-                          <span className={"text-xs px-2 py-0.5 rounded-full font-medium shrink-0 " + difColor(r.dificultad)}>
-                            {r.dificultad}
-                          </span>
-                        )}
+                    <CardDescription className="line-clamp-2 mt-1">{r.descripcion}</CardDescription>
+                    {reviews[r.id] && (
+                      <div className="flex items-center gap-0.5 mt-1.5" aria-label={`${t("rec.tu_valoracion")}: ${reviews[r.id].puntuacion} de 5`}>
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            className={`h-3.5 w-3.5 ${s <= reviews[r.id].puntuacion ? "text-amber-400 fill-amber-400" : "text-muted-foreground/20"}`}
+                          />
+                        ))}
                       </div>
-                      <CardDescription className="line-clamp-2 mt-1">{r.descripcion}</CardDescription>
-                      {reviews[r.id] && (
-                        <div className="flex items-center gap-0.5 mt-1.5" aria-label={`${t("rec.tu_valoracion")}: ${reviews[r.id].puntuacion} de 5`}>
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star
-                              key={s}
-                              className={`h-3.5 w-3.5 ${s <= reviews[r.id].puntuacion ? "text-amber-400 fill-amber-400" : "text-muted-foreground/20"}`}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </CardHeader>
-                    <CardContent className="mt-auto pt-3 border-t">
-                      <div className="flex justify-between items-center text-sm text-muted-foreground mb-3">
-                        <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {r.tiempo_minutos} {t("rec.min")}</span>
-                        <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {r.porciones} {t("rec.porciones").slice(0, 4)}.</span>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          className="flex-1"
-                          onClick={() => abrirDetalle(r)}
-                          data-testid={`button-ver-${r.id}`}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          {t("rec.btn_ver")}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="border-primary/40 text-primary hover:bg-primary hover:text-white transition-colors px-3"
-                          onClick={() => abrirCocinarDesdDetalle(r)}
-                          data-testid={`button-cocinar-card-${r.id}`}
-                          title={t("rec.btn_cocinar")}
-                        >
-                          <ChefHat className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </section>
+                    )}
+                  </CardHeader>
+
+                  <CardContent className="mt-auto pt-3 border-t">
+                    <div className="flex justify-between items-center text-sm text-muted-foreground mb-3">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" /> {r.tiempo_minutos} {t("rec.min")}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Users className="h-3.5 w-3.5" /> {r.porciones} {t("rec.porciones").slice(0, 4)}.
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        className="flex-1"
+                        onClick={() => abrirDetalle(r)}
+                        data-testid={`button-ver-${r.id}`}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        {t("rec.btn_ver")}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="border-primary/40 text-primary hover:bg-primary hover:text-white transition-colors px-3"
+                        onClick={() => abrirCocinarDesdDetalle(r)}
+                        data-testid={`button-cocinar-card-${r.id}`}
+                        title={t("rec.btn_cocinar")}
+                      >
+                        <ChefHat className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </Layout>
   );
