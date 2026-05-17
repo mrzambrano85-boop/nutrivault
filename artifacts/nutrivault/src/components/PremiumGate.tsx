@@ -31,15 +31,14 @@ interface PremiumGateProps {
 }
 
 export function PremiumGate({ children }: PremiumGateProps) {
-  const { isPremium, isTrialActive, trialDaysLeft, loadingPlan } = usePlan();
+  const { plan, loadingPlan } = usePlan();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const [stripeError, setStripeError] = useState("");
 
-  // Si está cargando o tiene acceso (premium o trial activo), muestra el contenido
   if (loadingPlan) return children;
-  if (isPremium) return children;
+  if (plan === "premium") return children;
 
   async function handleUpgrade() {
     setStripeError("");
@@ -105,14 +104,6 @@ export function PremiumGate({ children }: PremiumGateProps) {
               NutriVault Premium
             </DialogTitle>
           </DialogHeader>
-
-          {/* Banner trial expirado */}
-          {!isTrialActive && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
-              Tu período de prueba ha terminado. Activa Premium para seguir
-              usando todas las funciones.
-            </div>
-          )}
 
           <div className="grid grid-cols-2 gap-4 mt-2">
             <div className="rounded-xl border p-4 bg-muted/30">
