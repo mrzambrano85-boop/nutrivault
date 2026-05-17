@@ -4,8 +4,10 @@ import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useI18n } from "@/context/I18nContext";
+import { usePlan } from "@/context/PlanContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShoppingBasket, BookOpen, Pill, Trophy, ChevronRight } from "lucide-react";
+import { ShoppingBasket, BookOpen, Pill, Trophy, ChevronRight, Clock, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { es, enUS } from "date-fns/locale";
 
@@ -16,11 +18,10 @@ const NAV_MAP = {
   puntos:      "/puntos",
 } as const;
 
-type StatKey = keyof typeof NAV_MAP;
-
 export default function Dashboard() {
   const { user } = useAuth();
   const { t, lang } = useI18n();
+  const { isTrialActive, trialDaysLeft } = usePlan();
   const [, navigate] = useLocation();
   const [nombre, setNombre] = useState("Usuario");
   const [stats, setStats] = useState({ despensa: 0, recetas: 0, suplementos: 0, puntos: 0 });
@@ -65,9 +66,55 @@ export default function Dashboard() {
   const datePattern = lang === "en" ? "EEEE, MMMM d" : "EEEE, d 'de' MMMM";
   const today       = format(new Date(), datePattern, { locale: dateLocale });
 
+  const bannerUrgent  = trialDaysLeft <= 3;
+  const bannerWarning = trialDaysLeft <= 7 && trialDaysLeft > 3;
+
   return (
     <Layout>
-      <div className="space-y-8">
+      <div className="space-y-6">
+
+        {/* Banner Trial */}
+        {isTrialActive && (
+          <div className={`
+            rounded-xl px-4 py-3 flex items-center justify-between gap-4 border
+            ${bannerUrgent
+              ? "bg-red-50 border-red-200"
+              : bannerWarning
+              ? "bg-amber-50 border-amber-200"
+              : "bg-primary/5 border-primary/20"}
+          `}>
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={`
+                h-8 w-8 rounded-full flex items-center justify-center shrink-0
+                ${bannerUrgent ? "bg-red-100" : bannerWarning ? "bg-amber-100" : "bg-primary/10"}
+              `}>
+                <Clock className={`h-4 w-4 ${bannerUrgent ? "text-red-500" : bannerWarning ? "text-amber-500" : "text-primary"}`} />
+              </div>
+              <div className="min-w-0">
+                <p className={`text-sm font-semibold ${bannerUrgent ? "text-red-700" : bannerWarning ? "text-amber-700" : "text-primary"}`}>
+                  {trialDaysLeft === 1
+                    ? "¡Tu prueba gratuita termina mañana!"
+                    : `Te quedan ${trialDaysLeft} días de prueba gratuita`}
+                </p>
+                <p className={`text-xs mt-0.5 ${bannerUrgent ? "text-red-500" : bannerWarning ? "text-amber-500" : "text-muted-foreground"}`}>
+                  {bannerUrgent
+                    ? "Activa tu plan para no perder el acceso"
+                    : "Después del trial necesitas un plan para continuar"}
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              className={`shrink-0 gap-1.5 ${bannerUrgent ? "bg-red-600 hover:bg-red-700" : bannerWarning ? "bg-amber-500 hover:bg-amber-600" : ""}`}
+              onClick={() => window.location.href = "/api/create-checkout-session"}
+            >
+              <Zap className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Activar plan</span>
+              <span className="sm:hidden">$9.99</span>
+            </Button>
+          </div>
+        )}
+
         <header>
           <h1
             className="text-3xl font-bold text-foreground capitalize"
