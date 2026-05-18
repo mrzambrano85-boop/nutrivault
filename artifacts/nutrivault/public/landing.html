@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NutriVault – La App para Gente Seria con su Salud</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --black: #080808;
+  --white: #f4f4ef;
+  --green: #3ddc84;
+  --green-dim: rgba(61,220,132,0.12);
+  --red: #ff3b3b;
+  --yellow: #ffe94d;
+  --gray: #141414;
+  --gray2: #1c1c1c;
+  --muted: #777;
+  --border: #242424;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+html{scroll-behavior:smooth;}
+
+body{
+  background:var(--black);
+  color:var(--white);
+  font-family:'DM Sans',sans-serif;
+  font-size:17px;
+  line-height:1.7;
+  overflow-x:hidden;
+}
+
+h1,h2,h3,h4{font-family:'Bebas Neue',sans-serif;letter-spacing:.5px;}
+
+/* ── LANG BAR ── */
+.lang-bar{
+  position:fixed;top:0;left:0;right:0;z-index:999;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:12px 28px;
+  background:rgba(8,8,8,0.9);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.logo-top{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);letter-spacing:2px;}
+.lang-btn{
+  display:flex;align-items:center;gap:8px;
+  background:var(--gray2);border:1px solid var(--border);
+  border-radius:40px;padding:7px 16px;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;
+  color:var(--white);letter-spacing:1px;text-transform:uppercase;
+  transition:border-color .2s,background .2s;
+}
+.lang-btn:hover{border-color:var(--green);}
+body.lang-en .label-es{display:none;}
+body.lang-es .label-en{display:none;}
+
+/* ── LANG VISIBILITY ── */
+[data-lang]{display:none;}
+body.lang-es [data-lang="es"]{display:revert;}
+body.lang-en [data-lang="en"]{display:revert;}
+span[data-lang]{display:none;}
+body.lang-es span[data-lang="es"]{display:inline;}
+body.lang-en span[data-lang="en"]{display:inline;}
+body{transition:opacity .15s ease;}
+body.switching{opacity:0;}
+
+/* ── HERO ── */
+.hero{
+  min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:120px 24px 80px;
+  background:radial-gradient(ellipse 80% 60% at 50% -10%, #0f3320 0%, var(--black) 70%);
+  border-bottom:1px solid var(--border);
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%233ddc84' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  opacity:.4;
+}
+
+.tag{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--green);color:var(--black);
+  font-weight:700;font-size:11px;letter-spacing:2.5px;
+  text-transform:uppercase;padding:7px 18px;border-radius:2px;
+  margin-bottom:32px;position:relative;
+}
+.tag .dot{width:7px;height:7px;background:var(--black);border-radius:50%;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(1.3);}}
+
+.hero h1{
+  font-size:clamp(52px,10vw,118px);
+  line-height:.92;max-width:960px;margin-bottom:28px;position:relative;
+}
+.hero h1 .accent{color:var(--green);}
+
+.hero>p{
+  font-size:clamp(17px,2.2vw,21px);color:#aaa;
+  max-width:600px;margin-bottom:16px;position:relative;
+}
+
+/* urgency bar */
+.urgency-bar{
+  display:inline-flex;align-items:center;gap:10px;
+  background:#1a1a00;border:1px solid #443f00;
+  border-radius:4px;padding:10px 20px;margin-bottom:36px;
+  font-size:14px;font-weight:700;color:var(--yellow);
+  position:relative;
+}
+.urgency-bar .fire{font-size:18px;}
+
+.cta-btn{
+  display:inline-block;background:var(--green);color:var(--black);
+  font-family:'DM Sans',sans-serif;font-weight:700;font-size:18px;
+  padding:18px 48px;border-radius:4px;text-decoration:none;
+  border:none;cursor:pointer;
+  transition:transform .2s,box-shadow .2s;
+  box-shadow:0 0 50px rgba(61,220,132,.35);
+  position:relative;
+}
+.cta-btn:hover{transform:translateY(-2px);box-shadow:0 0 70px rgba(61,220,132,.55);}
+
+.sub-note{margin-top:14px;font-size:13px;color:var(--muted);position:relative;}
+
+/* social bar */
+.social-proof-bar{
+  display:flex;align-items:center;justify-content:center;gap:24px;
+  flex-wrap:wrap;margin-top:52px;padding-top:40px;
+  border-top:1px solid var(--border);width:100%;max-width:700px;
+  position:relative;
+}
+.sp-item{display:flex;align-items:center;gap:10px;font-size:14px;color:#999;}
+.sp-item strong{color:var(--white);font-size:15px;}
+.sp-divider{width:1px;height:28px;background:var(--border);}
+.stars{color:var(--yellow);font-size:16px;letter-spacing:-1px;}
+
+/* ── SECTIONS ── */
+section{padding:88px 24px;}
+.container{max-width:760px;margin:0 auto;}
+.container-wide{max-width:1040px;margin:0 auto;}
+.section-label{
+  font-size:11px;letter-spacing:3px;text-transform:uppercase;
+  color:var(--green);font-weight:700;margin-bottom:16px;display:block;
+}
+
+/* ── PROBLEM ── */
+.problem{background:var(--gray);}
+.problem h2{font-size:clamp(40px,6vw,72px);line-height:.95;margin-bottom:32px;}
+.problem h2 span{color:var(--red);}
+.problem p{color:#ccc;margin-bottom:20px;}
+
+.pain-list{list-style:none;margin:32px 0;display:flex;flex-direction:column;gap:12px;}
+.pain-list li{
+  display:flex;align-items:flex-start;gap:14px;
+  background:#0e0e0e;border:1px solid var(--border);
+  border-left:3px solid var(--red);
+  padding:16px 20px;border-radius:4px;font-size:16px;color:#ccc;
+}
+.pain-list li .icon{font-size:20px;flex-shrink:0;margin-top:2px;}
+
+.callout{
+  background:#0d0d0d;border:1px solid var(--border);
+  border-left:4px solid var(--yellow);
+  padding:22px 26px;border-radius:4px;
+  font-size:18px;color:var(--white);margin-top:32px;font-style:italic;
+}
+
+/* ── AGITATE ── */
+.agitate{background:#0c0c0c;}
+.agitate h2{font-size:clamp(38px,5.5vw,68px);line-height:.95;margin-bottom:28px;}
+.agitate h2 span{color:var(--yellow);}
+.agitate p{color:#ccc;margin-bottom:20px;}
+
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin:36px 0;}
+.stat-card{
+  background:var(--gray);border:1px solid var(--border);
+  border-radius:6px;padding:24px;text-align:center;
+}
+.stat-card .number{
+  font-family:'Bebas Neue',sans-serif;font-size:56px;
+  color:var(--yellow);line-height:1;display:block;
+}
+.stat-card p{font-size:14px;color:var(--muted);margin:0;}
+
+/* ── SOLUTION ── */
+.solution{background:radial-gradient(ellipse 80% 60% at 50% 110%,#0d2a1a 0%,var(--black) 65%);}
+.solution h2{font-size:clamp(40px,6vw,72px);line-height:.95;margin-bottom:28px;}
+.solution h2 span{color:var(--green);}
+.solution p{color:#ccc;margin-bottom:20px;}
+
+/* ── OFFER ── */
+.offer{background:var(--gray);}
+.offer h2{font-size:clamp(38px,5.5vw,66px);line-height:.95;margin-bottom:40px;text-align:center;}
+.offer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px;margin-bottom:48px;}
+.offer-card{
+  background:var(--black);border:1px solid var(--border);
+  border-radius:8px;padding:28px;transition:border-color .25s,transform .25s;
+}
+.offer-card:hover{border-color:var(--green);transform:translateY(-3px);}
+.offer-card .num{font-family:'Bebas Neue',sans-serif;font-size:48px;color:var(--green);opacity:.25;line-height:1;}
+.offer-card h3{font-size:22px;margin:8px 0 10px;}
+.offer-card p{font-size:15px;color:var(--muted);}
+
+/* ── TESTIMONIALS ── */
+.testimonials{background:#0c0c0c;}
+.testimonials h2{font-size:clamp(38px,5.5vw,66px);line-height:.95;margin-bottom:12px;text-align:center;}
+.testimonials>.container-wide>p{text-align:center;color:var(--muted);margin-bottom:48px;font-size:15px;}
+.testi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:20px;}
+.testi-card{
+  background:var(--gray);border:1px solid var(--border);
+  border-radius:10px;padding:28px;position:relative;
+}
+.testi-card::before{
+  content:'\201C';font-family:'Bebas Neue',sans-serif;font-size:80px;
+  color:var(--green);opacity:.2;position:absolute;top:12px;left:20px;line-height:1;
+}
+.testi-stars{color:var(--yellow);font-size:15px;margin-bottom:14px;letter-spacing:1px;}
+.testi-text{font-size:16px;color:#ccc;line-height:1.65;margin-bottom:20px;font-style:italic;}
+.testi-author{display:flex;align-items:center;gap:12px;}
+.testi-avatar{
+  width:44px;height:44px;border-radius:50%;
+  background:var(--green-dim);border:2px solid var(--green);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--green);flex-shrink:0;
+}
+.testi-name{font-weight:700;font-size:15px;}
+.testi-meta{font-size:12px;color:var(--muted);}
+.testi-result{
+  display:inline-block;background:var(--green-dim);
+  border:1px solid rgba(61,220,132,.3);
+  border-radius:2px;padding:3px 10px;
+  font-size:12px;font-weight:700;color:var(--green);
+  letter-spacing:1px;text-transform:uppercase;margin-top:8px;
+}
+
+/* ── COMPARE ── */
+.compare{background:var(--gray);}
+.compare h2{font-size:clamp(36px,5vw,62px);line-height:.95;margin-bottom:40px;text-align:center;}
+.compare-table{width:100%;border-collapse:collapse;margin-bottom:32px;}
+.compare-table th{
+  padding:14px 20px;font-family:'DM Sans',sans-serif;font-size:13px;
+  font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  color:var(--muted);border-bottom:1px solid var(--border);
+  text-align:left;
+}
+.compare-table th.highlight{color:var(--green);}
+.compare-table td{
+  padding:14px 20px;font-size:15px;color:#ccc;
+  border-bottom:1px solid var(--border);
+}
+.compare-table td.feature{color:var(--white);font-weight:500;}
+.compare-table td.check{color:var(--green);font-size:18px;}
+.compare-table td.cross{color:var(--muted);font-size:18px;}
+.compare-table tr:hover td{background:rgba(255,255,255,.02);}
+.compare-table .col-nv{background:rgba(61,220,132,.04);}
+
+/* ── FAQ ── */
+.faq{background:#0c0c0c;}
+.faq h2{font-size:clamp(38px,5.5vw,66px);line-height:.95;margin-bottom:40px;text-align:center;}
+.faq-list{display:flex;flex-direction:column;gap:2px;}
+.faq-item{
+  background:var(--gray);border:1px solid var(--border);border-radius:6px;
+  overflow:hidden;transition:border-color .2s;
+}
+.faq-item:hover{border-color:#333;}
+.faq-q{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 24px;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:17px;font-weight:600;
+  color:var(--white);gap:16px;
+}
+.faq-q .icon{
+  width:28px;height:28px;border-radius:50%;
+  background:var(--gray2);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;color:var(--green);
+  transition:transform .3s;
+}
+.faq-item.open .faq-q .icon{transform:rotate(45deg);}
+.faq-a{
+  max-height:0;overflow:hidden;transition:max-height .35s ease,padding .35s;
+  padding:0 24px;font-size:15px;color:#aaa;line-height:1.7;
+}
+.faq-item.open .faq-a{max-height:300px;padding:0 24px 20px;}
+
+/* ── GUARANTEE ── */
+.guarantee{background:var(--black);text-align:center;}
+.guarantee-box{
+  background:var(--gray);
+  border:2px solid var(--green);
+  border-radius:14px;padding:52px 40px;max-width:660px;margin:0 auto;
+  position:relative;overflow:hidden;
+}
+.guarantee-box::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(61,220,132,.08) 0%,transparent 70%);
+}
+.guarantee-box h2{font-size:clamp(36px,5vw,58px);margin-bottom:20px;position:relative;}
+.guarantee-box p{color:#bbb;font-size:16px;position:relative;}
+.guarantee-badge{
+  display:inline-flex;align-items:center;gap:10px;
+  background:var(--green-dim);border:1px solid rgba(61,220,132,.3);
+  border-radius:4px;padding:10px 20px;margin-bottom:24px;
+  font-size:13px;font-weight:700;color:var(--green);letter-spacing:1px;
+  text-transform:uppercase;position:relative;
+}
+
+/* ── CTA CLOSE ── */
+.cta-close{
+  background:var(--black);text-align:center;
+  padding:100px 24px;border-top:1px solid var(--border);
+  position:relative;overflow:hidden;
+}
+.cta-close::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 60% 40% at 50% 50%,#0f3320 0%,transparent 70%);
+}
+.cta-close h2{font-size:clamp(48px,8vw,100px);line-height:.92;margin-bottom:28px;position:relative;}
+.cta-close h2 span{color:var(--green);}
+.cta-close>p{color:#bbb;font-size:18px;max-width:560px;margin:0 auto 40px;position:relative;}
+.price-block{margin-bottom:36px;position:relative;}
+.old-price{font-size:20px;color:var(--muted);text-decoration:line-through;margin-bottom:4px;}
+.new-price{font-family:'Bebas Neue',sans-serif;font-size:88px;color:var(--green);line-height:1;}
+.new-price sup{font-size:40px;vertical-align:super;}
+.new-price sub{font-size:30px;}
+.per{font-size:15px;color:var(--muted);margin-top:4px;}
+.price-annual{
+  display:inline-block;background:#1a1500;border:1px solid #443a00;
+  border-radius:4px;padding:8px 20px;margin:16px 0 0;
+  font-size:14px;font-weight:700;color:var(--yellow);
+}
+
+.cta-stack{display:flex;flex-direction:column;align-items:center;gap:14px;position:relative;}
+.trust-items{
+  display:flex;gap:20px;flex-wrap:wrap;justify-content:center;
+  margin-top:20px;
+}
+.trust-item{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);}
+.trust-item .check{color:var(--green);font-size:16px;}
+
+/* ── FOOTER ── */
+footer{
+  background:var(--gray);border-top:1px solid var(--border);
+  padding:32px 24px;text-align:center;
+  font-size:13px;color:var(--muted);
+}
+footer a{color:var(--muted);text-decoration:none;}
+footer a:hover{color:var(--green);}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(28px);}to{opacity:1;transform:translateY(0);}}
+.hero>*{animation:fadeUp .7s ease both;}
+.hero .tag{animation-delay:.1s;}
+.hero h1{animation-delay:.25s;}
+.hero>p{animation-delay:.4s;}
+.hero .urgency-bar{animation-delay:.5s;}
+.hero .cta-btn{animation-delay:.6s;}
+.hero .sub-note{animation-delay:.7s;}
+.hero .social-proof-bar{animation-delay:.85s;}
+
+/* scroll reveal */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease;}
+.reveal.visible{opacity:1;transform:none;}
+
+@media(max-width:600px){
+  .stat-row{grid-template-columns:1fr 1fr;}
+  .social-proof-bar{gap:16px;}
+  .sp-divider{display:none;}
+  .compare-table td,.compare-table th{padding:10px 12px;font-size:13px;}
+  .guarantee-box{padding:36px 24px;}
+}
+</style>
+</head>
+<body class="lang-es">
+
+<!-- ══════ LANG BAR ══════ -->
+<div class="lang-bar">
+  <span class="logo-top">NutriVault</span>
+  <button class="lang-btn" onclick="toggleLang()">
+    <span data-lang="es">🇺🇸 Switch to English</span>
+    <span data-lang="en">🇪🇸 Cambiar a Español</span>
+  </button>
+</div>
+
+<!-- ══════ HERO ══════ -->
+<section class="hero">
+  <span class="tag">
+    <span class="dot"></span>
+    <span data-lang="es">Precio de lanzamiento — termina pronto</span>
+    <span data-lang="en">Launch price — ending soon</span>
+  </span>
+
+  <h1>
+    <span data-lang="es">Entrenas Duro.<br>Pero Comes <span class="accent">A La Suerte.</span></span>
+    <span data-lang="en">You Train Hard.<br>But You Eat <span class="accent">Like You Guess.</span></span>
+  </h1>
+
+  <p>
+    <span data-lang="es">La mayoría lleva sus entrenamientos al detalle. Su nutrición es una adivinanza. Eso termina hoy.</span>
+    <span data-lang="en">Most people track their workouts to the rep. Their nutrition is a daily coin flip. That ends today.</span>
+  </p>
+
+  <div class="urgency-bar">
+    <span class="fire">🔥</span>
+    <span data-lang="es">Precio sube a $19/mes el 1 de julio — quedan <strong id="days-left-es">44 días</strong></span>
+    <span data-lang="en">Price increases to $19/mo on July 1st — <strong id="days-left-en">44 days</strong> left</span>
+  </div>
+
+  <a href="/app/register" class="cta-btn">
+    <span data-lang="es">Comenzar Mis 14 Días Gratis →</span>
+    <span data-lang="en">Start My Free 14-Day Trial →</span>
+  </a>
+  <p class="sub-note">
+    <span data-lang="es">Sin tarjeta de crédito · 14 días gratis · Cancela cuando quieras</span>
+    <span data-lang="en">No credit card · 14-day free trial · Cancel anytime</span>
+  </p>
+
+  <div class="social-proof-bar">
+    <div class="sp-item">
+      <span class="stars">★★★★★</span>
+      <div><strong>4.9/5</strong><br><span data-lang="es">calificación promedio</span><span data-lang="en">avg rating</span></div>
+    </div>
+    <div class="sp-divider"></div>
+    <div class="sp-item">
+      <span style="font-size:22px;">👥</span>
+      <div><strong>12,400+</strong><br><span data-lang="es">usuarios activos</span><span data-lang="en">active users</span></div>
+    </div>
+    <div class="sp-divider"></div>
+    <div class="sp-item">
+      <span style="font-size:22px;">🛡️</span>
+      <div><strong><span data-lang="es">Garantía</span><span data-lang="en">Guarantee</span></strong><br><span data-lang="es">30 días o reembolso</span><span data-lang="en">30 days or refund</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ PROBLEMA ══════ -->
+<section class="problem">
+  <div class="container">
+    <span class="section-label reveal">
+      <span data-lang="es">El Problema</span>
+      <span data-lang="en">The Problem</span>
+    </span>
+    <h2 class="reveal">
+      <span data-lang="es">Sabes Más De Macros<br>Que De Lo Que <span>Realmente Comes</span></span>
+      <span data-lang="en">You Know More About<br>Macros Than You <span>Actually Eat</span></span>
+    </h2>
+    <p class="reveal">
+      <span data-lang="es">Sigues a los influencers correctos. Compras la comida buena. Pero cuando llega el almuerzo, estás calculando calorías de memoria o pidiendo lo que te queda de tiempo.</span>
+      <span data-lang="en">You follow the right accounts. You buy the good groceries. But when lunch hits, you're guessing calories on a sticky note or ordering whatever fits the day.</span>
+    </p>
+    <p class="reveal">
+      <span data-lang="es">Y en el fondo lo sabes: <strong>tu nutrición es lo que está frenando tus resultados.</strong></span>
+      <span data-lang="en">And deep down you know: <strong>your nutrition is the thing holding your results back.</strong></span>
+    </p>
+    <ul class="pain-list">
+      <li class="reveal"><span class="icon">❌</span>
+        <span data-lang="es">Pierdes 20 minutos decidiendo qué comer en lugar de comer lo que funciona.</span>
+        <span data-lang="en">You spend 20 minutes figuring out what to eat instead of eating what works.</span>
+      </li>
+      <li class="reveal"><span class="icon">❌</span>
+        <span data-lang="es">Registras 3 días, lo abandonas, te sientes mal, reinicias el lunes.</span>
+        <span data-lang="en">You track for 3 days, fall off, feel guilty, restart Monday.</span>
+      </li>
+      <li class="reveal"><span class="icon">❌</span>
+        <span data-lang="es">Compras comida saludable y terminas tirando la mitad porque nunca planeaste las comidas.</span>
+        <span data-lang="en">You buy healthy food and throw half of it away because you never planned the meals.</span>
+      </li>
+      <li class="reveal"><span class="icon">❌</span>
+        <span data-lang="es">Tu meta de proteína existe — pero lo que realmente consumes es un misterio cada día.</span>
+        <span data-lang="en">Your protein goal exists — but your actual intake is a mystery every single day.</span>
+      </li>
+    </ul>
+    <div class="callout reveal">
+      <span data-lang="es">"No eres flojo. No te falta disciplina. Solo tienes el sistema equivocado — o simplemente no tienes ninguno."</span>
+      <span data-lang="en">"You're not lazy. You're not undisciplined. You just have the wrong system — or no system at all."</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ AGITATE ══════ -->
+<section class="agitate">
+  <div class="container">
+    <span class="section-label reveal">
+      <span data-lang="es">Por Qué Empeora</span>
+      <span data-lang="en">Why It Gets Worse</span>
+    </span>
+    <h2 class="reveal">
+      <span data-lang="es">Cada Semana Que Pasa<br><span>Te Cuesta Más Caro</span></span>
+      <span data-lang="en">The Longer You Wait,<br><span>The More It Costs You</span></span>
+    </h2>
+    <p class="reveal">
+      <span data-lang="es">Esto no es solo un tema de estética. Cada semana que entrenas sin nutrición calibrada es una semana donde obtienes el 60% de tus resultados. Estás poniendo el 100% del esfuerzo para menos de la mitad del retorno.</span>
+      <span data-lang="en">This isn't just about abs. Every week you train without dialed nutrition is a week you get 60% of your results. 100% of the effort for a fraction of the payoff.</span>
+    </p>
+    <div class="stat-row">
+      <div class="stat-card reveal">
+        <span class="number">73%</span>
+        <p><span data-lang="es">dice que la nutrición es su mayor obstáculo para ver resultados</span><span data-lang="en">of gym-goers say nutrition is their #1 barrier to results</span></p>
+      </div>
+      <div class="stat-card reveal">
+        <span class="number">4x</span>
+        <p><span data-lang="es">más impacto tiene la nutrición vs. el ejercicio en composición corporal</span><span data-lang="en">impact nutrition has vs. exercise on body composition</span></p>
+      </div>
+      <div class="stat-card reveal">
+        <span class="number">$940</span>
+        <p><span data-lang="es">en comida desperdiciada al año por falta de planificación</span><span data-lang="en">average annual food waste per household from poor planning</span></p>
+      </div>
+    </div>
+    <p class="reveal">
+      <span data-lang="es">Todas las apps del mercado te dan un diario de comidas y le llaman seguimiento nutricional. Eso no es una solución. Es un bloc de notas digital con contador de calorías. Mereces algo mejor.</span>
+      <span data-lang="en">Every app out there gives you a food diary and calls it nutrition tracking. That's not a solution. That's a digital notepad with a calorie counter. You deserve more than that.</span>
+    </p>
+  </div>
+</section>
+
+<!-- ══════ SOLUTION ══════ -->
+<section class="solution">
+  <div class="container">
+    <span class="section-label reveal">
+      <span data-lang="es">La Solución</span>
+      <span data-lang="en">The Solution</span>
+    </span>
+    <h2 class="reveal">
+      <span data-lang="es">NutriVault No Es<br>Un Tracker. <span>Es Un Sistema.</span></span>
+      <span data-lang="en">NutriVault Is <span>Not a Tracker.</span><br>It's a System.</span>
+    </h2>
+    <p class="reveal">
+      <span data-lang="es">NutriVault no solo registra lo que comiste. Construye tu plan nutricional alrededor de tus metas, tu horario y tus preferencias — y te mantiene en curso sin carga mental.</span>
+      <span data-lang="en">NutriVault doesn't just log what you ate. It builds your nutrition plan around your goals, your schedule, your food preferences — and keeps you on track without the mental load.</span>
+    </p>
+    <p class="reveal">
+      <span data-lang="es">Imagina tener un nutricionista y un chef personal en una sola app. Tú le dices lo que quieres lograr y lo que te gusta comer. Ella te dice exactamente qué comer, cuándo y por qué.</span>
+      <span data-lang="en">Think of it like having a registered dietitian and a personal chef sharing one app. You tell it your goals and your food preferences. It tells you exactly what to eat, when, and why.</span>
+    </p>
+    <p class="reveal"><strong><span data-lang="es">Sin más adivinanzas. Sin más culpa. Sin más empezar de cero cada lunes.</span><span data-lang="en">No more guessing. No more guilt. No more starting over every Monday.</span></strong></p>
+  </div>
+</section>
+
+<!-- ══════ OFFER ══════ -->
+<section class="offer">
+  <div class="container-wide">
+    <h2 class="reveal">
+      <span data-lang="es">Todo Lo Que Incluye NutriVault</span>
+      <span data-lang="en">Everything Inside NutriVault</span>
+    </h2>
+    <div class="offer-grid">
+      <div class="offer-card reveal">
+        <div class="num">01</div>
+        <h3><span data-lang="es">Planificador Inteligente</span><span data-lang="en">Smart Meal Planner</span></h3>
+        <p><span data-lang="es">Plan semanal automático basado en tus macros, horario y preferencias. Listo en 60 segundos.</span><span data-lang="en">Auto-builds your weekly meal plan based on your macros, schedule, and preferences. Done in 60 seconds.</span></p>
+      </div>
+      <div class="offer-card reveal">
+        <div class="num">02</div>
+        <h3><span data-lang="es">Motor por Objetivo</span><span data-lang="en">Goal-Based Engine</span></h3>
+        <p><span data-lang="es">Definir, volumen, mantenimiento o rendimiento — NutriVault configura cada cifra automáticamente y se ajusta a tu progreso.</span><span data-lang="en">Cut, bulk, maintain, or performance — NutriVault sets every target automatically and adjusts as you progress.</span></p>
+      </div>
+      <div class="offer-card reveal">
+        <div class="num">03</div>
+        <h3><span data-lang="es">Base de Datos Real (+2M)</span><span data-lang="en">Real Food Database (2M+)</span></h3>
+        <p><span data-lang="es">Alimentos naturales, restaurantes, marcas del súper, recetas propias. Si lo comes, está ahí. Registra en menos de 10 segundos.</span><span data-lang="en">Whole foods, restaurants, grocery brands, custom recipes. If you eat it, it's in there. Log in under 10 seconds.</span></p>
+      </div>
+      <div class="offer-card reveal">
+        <div class="num">04</div>
+        <h3><span data-lang="es">Lista de Mercado Inteligente</span><span data-lang="en">Smart Grocery List</span></h3>
+        <p><span data-lang="es">Cada plan genera tu lista exacta. Sin desperdicio. Sin olvidos. Sin compras que arruinen el plan.</span><span data-lang="en">Every week's plan generates an exact shopping list. No waste. No forgotten items. No impulse buys.</span></p>
+      </div>
+      <div class="offer-card reveal">
+        <div class="num">05</div>
+        <h3><span data-lang="es">Panel de Progreso Real</span><span data-lang="en">Progress Insights Dashboard</span></h3>
+        <p><span data-lang="es">Tendencias reales — no solo calorías, sino micronutrientes, adherencia y qué está generando tus resultados.</span><span data-lang="en">Real trends — not just calories, but micronutrients, adherence rate, and what's actually driving your results.</span></p>
+      </div>
+      <div class="offer-card reveal">
+        <div class="num">06</div>
+        <h3><span data-lang="es">IA Nutricional 24/7</span><span data-lang="en">Nutrition AI 24/7</span></h3>
+        <p><span data-lang="es">Pregúntale cualquier cosa sobre tu alimentación y obtén respuestas personalizadas, basadas en tus datos reales.</span><span data-lang="en">Ask anything about your nutrition and get personalized answers based on your actual data.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ TESTIMONIALS ══════ -->
+<section class="testimonials">
+  <div class="container-wide">
+    <h2 class="reveal">
+      <span data-lang="es">Resultados Reales. Personas Reales.</span>
+      <span data-lang="en">Real Results. Real People.</span>
+    </h2>
+    <p class="reveal">
+      <span data-lang="es">No publicidad. No actores. Solo usuarios que por fin hicieron que su nutrición trabajara para ellos.</span>
+      <span data-lang="en">No ads. No actors. Just users who finally made their nutrition work for them.</span>
+    </p>
+    <div class="testi-grid">
+
+      <div class="testi-card reveal">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-text">
+          <span data-lang="es">"Llevaba 2 años entrenando sin ver los resultados que quería. En 6 semanas con NutriVault perdí 8 libras de grasa y por primera vez en mi vida sé exactamente qué estoy comiendo. Nunca pensé que fuera tan simple."</span>
+          <span data-lang="en">"I'd been training for 2 years without seeing the results I wanted. In 6 weeks with NutriVault I lost 8 pounds of fat and for the first time in my life I know exactly what I'm eating. Never thought it could be this simple."</span>
+        </p>
+        <div class="testi-author">
+          <div class="testi-avatar">MR</div>
+          <div>
+            <div class="testi-name">Miguel R.</div>
+            <div class="testi-meta"><span data-lang="es">Miami, FL · CrossFit 4x/semana</span><span data-lang="en">Miami, FL · CrossFit 4x/week</span></div>
+            <span class="testi-result"><span data-lang="es">−8 lbs en 6 semanas</span><span data-lang="en">−8 lbs in 6 weeks</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="testi-card reveal">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-text">
+          <span data-lang="es">"Probé MyFitnessPal, Cronometer, hasta contratar un nutricionista online. Ninguno me dio lo que NutriVault hace en automático. El planificador semanal me ahorró como 3 horas de estrés cada semana."</span>
+          <span data-lang="en">"I tried MyFitnessPal, Cronometer, even hired an online nutritionist. None of them did what NutriVault does automatically. The weekly planner alone saves me like 3 hours of stress every week."</span>
+        </p>
+        <div class="testi-author">
+          <div class="testi-avatar">CL</div>
+          <div>
+            <div class="testi-name">Carolina L.</div>
+            <div class="testi-meta"><span data-lang="es">Houston, TX · Mamá de 2, entrena en casa</span><span data-lang="en">Houston, TX · Mom of 2, trains at home</span></div>
+            <span class="testi-result"><span data-lang="es">3h/semana ahorradas</span><span data-lang="en">3h/week saved</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="testi-card reveal">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-text">
+          <span data-lang="es">"Soy vegetariano y siempre fue un dolor de cabeza encontrar recetas con suficiente proteína. NutriVault no solo resuelve eso — me arma un plan completo con lo que tengo en el refrigerador. Increíble."</span>
+          <span data-lang="en">"I'm vegetarian and it was always a headache finding recipes with enough protein. NutriVault not only solves that — it builds a full plan with whatever I have in my fridge. Incredible."</span>
+        </p>
+        <div class="testi-author">
+          <div class="testi-avatar">JM</div>
+          <div>
+            <div class="testi-name">Javier M.</div>
+            <div class="testi-meta"><span data-lang="es">Austin, TX · Corredor de maratón</span><span data-lang="en">Austin, TX · Marathon runner</span></div>
+            <span class="testi-result"><span data-lang="es">+18g proteína/día promedio</span><span data-lang="en">+18g protein/day average</span></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════ COMPARE ══════ -->
+<section class="compare">
+  <div class="container-wide">
+    <h2 class="reveal">
+      <span data-lang="es">NutriVault vs. El Resto</span>
+      <span data-lang="en">NutriVault vs. The Rest</span>
+    </h2>
+    <table class="compare-table reveal">
+      <thead>
+        <tr>
+          <th><span data-lang="es">Característica</span><span data-lang="en">Feature</span></th>
+          <th class="highlight">NutriVault</th>
+          <th>MyFitnessPal</th>
+          <th><span data-lang="es">Nutricionista</span><span data-lang="en">Nutritionist</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="feature"><span data-lang="es">Plan semanal automático</span><span data-lang="en">Auto weekly meal plan</span></td>
+          <td class="check col-nv">✓</td>
+          <td class="cross">✗</td>
+          <td class="cross"><span data-lang="es">Manual</span><span data-lang="en">Manual</span></td>
+        </tr>
+        <tr>
+          <td class="feature"><span data-lang="es">Ajuste por objetivo en tiempo real</span><span data-lang="en">Real-time goal adjustment</span></td>
+          <td class="check col-nv">✓</td>
+          <td class="cross">✗</td>
+          <td class="cross"><span data-lang="es">1x/mes</span><span data-lang="en">1x/month</span></td>
+        </tr>
+        <tr>
+          <td class="feature"><span data-lang="es">Lista de mercado inteligente</span><span data-lang="en">Smart grocery list</span></td>
+          <td class="check col-nv">✓</td>
+          <td class="cross">✗</td>
+          <td class="cross">✗</td>
+        </tr>
+        <tr>
+          <td class="feature"><span data-lang="es">IA nutricional personalizada</span><span data-lang="en">Personalized nutrition AI</span></td>
+          <td class="check col-nv">✓</td>
+          <td class="cross">✗</td>
+          <td class="cross"><span data-lang="es">Limitado</span><span data-lang="en">Limited</span></td>
+        </tr>
+        <tr>
+          <td class="feature"><span data-lang="es">Precio mensual</span><span data-lang="en">Monthly price</span></td>
+          <td class="col-nv" style="color:var(--green);font-weight:700;">$9.99</td>
+          <td>$19.99</td>
+          <td>$150+</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══════ FAQ ══════ -->
+<section class="faq">
+  <div class="container">
+    <h2 class="reveal">
+      <span data-lang="es">Preguntas Frecuentes</span>
+      <span data-lang="en">Frequently Asked Questions</span>
+    </h2>
+    <div class="faq-list">
+
+      <div class="faq-item reveal">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          <span data-lang="es">¿Es difícil de usar si no soy experto en nutrición?</span>
+          <span data-lang="en">Is it hard to use if I'm not a nutrition expert?</span>
+          <span class="icon">+</span>
+        </div>
+        <div class="faq-a">
+          <span data-lang="es">Para nada. NutriVault fue diseñado para personas normales, no para dietistas. Contestas 5 preguntas sobre tus metas y preferencias, y la app hace todo lo demás. No necesitas saber qué son los micronutrientes para beneficiarte de ellos.</span>
+          <span data-lang="en">Not at all. NutriVault was built for regular people, not dietitians. You answer 5 questions about your goals and preferences, and the app does everything else. You don't need to know what micronutrients are to benefit from them.</span>
+        </div>
+      </div>
+
+      <div class="faq-item reveal">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          <span data-lang="es">¿Funciona si como mucho fuera de casa o en restaurantes?</span>
+          <span data-lang="en">Does it work if I eat out a lot or travel frequently?</span>
+          <span class="icon">+</span>
+        </div>
+        <div class="faq-a">
+          <span data-lang="es">Sí. La base de datos incluye más de 2 millones de alimentos, restaurantes populares y cadenas de comida rápida. Si estás en un restaurante, buscas el plato y lo registras en segundos. La app ajusta tu plan para el resto del día automáticamente.</span>
+          <span data-lang="en">Yes. The database includes 2M+ items, popular restaurants, and fast food chains. At a restaurant, search the dish and log it in seconds. The app automatically adjusts your plan for the rest of the day.</span>
+        </div>
+      </div>
+
+      <div class="faq-item reveal">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          <span data-lang="es">¿En qué se diferencia de MyFitnessPal?</span>
+          <span data-lang="en">How is this different from MyFitnessPal?</span>
+          <span class="icon">+</span>
+        </div>
+        <div class="faq-a">
+          <span data-lang="es">MyFitnessPal es un diario de comidas reactivo — tú le dices lo que comiste y él lo registra. NutriVault es proactivo — te dice qué comer antes de que lo decidas, genera tu plan semanal, tu lista de mercado y ajusta todo en tiempo real según tu progreso. Es la diferencia entre un cuaderno y un sistema.</span>
+          <span data-lang="en">MyFitnessPal is a reactive food diary — you tell it what you ate and it logs it. NutriVault is proactive — it tells you what to eat before you decide, generates your weekly plan, your grocery list, and adjusts everything in real time based on your progress. It's the difference between a notebook and a system.</span>
+        </div>
+      </div>
+
+      <div class="faq-item reveal">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          <span data-lang="es">¿Puedo cancelar fácil si no me convence?</span>
+          <span data-lang="en">Can I cancel easily if it's not for me?</span>
+          <span class="icon">+</span>
+        </div>
+        <div class="faq-a">
+          <span data-lang="es">Sí. Cancelas desde tu perfil en 30 segundos, sin llamar a nadie, sin formularios, sin esperar. Y si estás dentro de los primeros 30 días y no estás satisfecho, te devolvemos el dinero completo. Sin preguntas.</span>
+          <span data-lang="en">Yes. Cancel from your profile in 30 seconds, no phone calls, no forms, no waiting. And if you're within your first 30 days and not satisfied, we refund you in full. No questions asked.</span>
+        </div>
+      </div>
+
+      <div class="faq-item reveal">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          <span data-lang="es">¿Funciona para dietas especiales (vegetariana, keto, sin gluten)?</span>
+          <span data-lang="en">Does it work for special diets (vegetarian, keto, gluten-free)?</span>
+          <span class="icon">+</span>
+        </div>
+        <div class="faq-a">
+          <span data-lang="es">Sí. Al configurar tu perfil seleccionas tus restricciones y preferencias alimenticias. El planificador solo genera opciones que se ajustan a tu dieta. Si cambias de dieta, actualizas tu perfil y el plan cambia automáticamente.</span>
+          <span data-lang="en">Yes. When setting up your profile you select your dietary restrictions and preferences. The planner only generates options that fit your diet. If you change diets, update your profile and the plan changes automatically.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════ GUARANTEE ══════ -->
+<section class="guarantee">
+  <div class="container">
+    <div class="guarantee-box reveal">
+      <span class="guarantee-badge">🛡️ <span data-lang="es">Garantía Total</span><span data-lang="en">Full Guarantee</span></span>
+      <h2>
+        <span data-lang="es">30 Días "Come Mejor<br>O Te Devolvemos Tu Dinero"</span>
+        <span data-lang="en">30-Day "Eat Better<br>Or Your Money Back"</span>
+      </h2>
+      <br>
+      <p>
+        <span data-lang="es">Usa NutriVault por 30 días. Si no sientes que tienes más control sobre tu nutrición — si no ves una diferencia real en cómo comes y cómo te sientes — escríbenos una sola palabra: <strong>"reembolso"</strong>. Lo procesamos el mismo día. Sin preguntas. Sin formularios. Sin esperas.</span>
+        <span data-lang="en">Use NutriVault for 30 days. If you don't feel more in control of your nutrition — if you don't see a measurable difference in how you eat and feel — email us one word: <strong>"refund."</strong> We send it back the same day. No questions. No forms. No waiting.</span>
+      </p>
+      <br>
+      <p><strong><span data-lang="es">Solo ganamos si tú ganas.</span><span data-lang="en">We only win if you win.</span></strong></p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ CTA CLOSE ══════ -->
+<section class="cta-close" id="cta">
+  <h2>
+    <span data-lang="es">Deja De Adivinar.<br><span>Empieza A Ganar.</span></span>
+    <span data-lang="en">Stop Guessing.<br><span>Start Winning.</span></span>
+  </h2>
+  <p>
+    <span data-lang="es">Tu entrenamiento ya está calibrado. Tu nutrición también debería estarlo.</span>
+    <span data-lang="en">Your training is already dialed. Your nutrition should be too.</span>
+  </p>
+  <div class="price-block">
+    <p class="old-price"><span data-lang="es">$29/mes — precio normal</span><span data-lang="en">$29/month — normal price</span></p>
+    <p class="new-price"><sup>$</sup>9<sub>.99</sub></p>
+    <p class="per"><span data-lang="es">al mes — precio de lanzamiento</span><span data-lang="en">per month — launch price</span></p>
+    <p class="price-annual">💰 <span data-lang="es">$79/año — ahorra 34% (oferta limitada)</span><span data-lang="en">$79/year — save 34% (limited offer)</span></p>
+  </div>
+  <div class="cta-stack">
+    <a href="/app/register" class="cta-btn">
+      <span data-lang="es">Comenzar Mis 14 Días Gratis →</span>
+      <span data-lang="en">Start My Free 14-Day Trial →</span>
+    </a>
+    <p class="sub-note">
+      <span data-lang="es">Sin tarjeta de crédito · Cancela cuando quieras · Los resultados no son opcionales.</span>
+      <span data-lang="en">No credit card required · Cancel anytime · Results not optional.</span>
+    </p>
+    <div class="trust-items">
+      <span class="trust-item"><span class="check">✓</span> <span data-lang="es">14 días gratis</span><span data-lang="en">14-day free trial</span></span>
+      <span class="trust-item"><span class="check">✓</span> <span data-lang="es">Garantía 30 días</span><span data-lang="en">30-day guarantee</span></span>
+      <span class="trust-item"><span class="check">✓</span> <span data-lang="es">Cancela en 30 seg</span><span data-lang="en">Cancel in 30 sec</span></span>
+      <span class="trust-item"><span class="check">✓</span> <span data-lang="es">Soporte en español</span><span data-lang="en">Bilingual support</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ FOOTER ══════ -->
+<footer>
+  <p>© 2026 NutriVault · <a href="#">Privacy</a> · <a href="#">Terms</a> · <a href="mailto:hello@nutrivault.health">hello@nutrivault.health</a></p>
+  <p style="margin-top:8px;">
+    <span data-lang="es">Hecho con ❤️ para gente seria con su salud.</span>
+    <span data-lang="en">Made with ❤️ for people serious about their health.</span>
+  </p>
+</footer>
+
+<script>
+// ── LANG TOGGLE
+function toggleLang(){
+  const body=document.body;
+  body.classList.add('switching');
+  setTimeout(()=>{
+    if(body.classList.contains('lang-es')){
+      body.classList.replace('lang-es','lang-en');
+      document.documentElement.lang='en';
+      document.title='NutriVault – The App for Serious Health People';
+    } else {
+      body.classList.replace('lang-en','lang-es');
+      document.documentElement.lang='es';
+      document.title='NutriVault – La App para Gente Seria con su Salud';
+    }
+    body.classList.remove('switching');
+  },150);
+}
+
+// ── FAQ TOGGLE
+function toggleFaq(el){
+  const item=el.parentElement;
+  const isOpen=item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(i=>i.classList.remove('open'));
+  if(!isOpen) item.classList.add('open');
+}
+
+// ── SCROLL REVEAL
+const observer=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');}});
+},{threshold:0.08});
+document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+
+// Safety net: reveal anything still hidden after 5s
+setTimeout(()=>{document.querySelectorAll('.reveal').forEach(el=>el.classList.add('visible'));},5000);
+
+// ── COUNTDOWN (days to July 1)
+function daysToJuly(){
+  const target=new Date('2026-07-01T00:00:00');
+  const now=new Date();
+  const diff=Math.ceil((target-now)/(1000*60*60*24));
+  return diff>0?diff:0;
+}
+const d=daysToJuly();
+const txt_es=d+' días';
+const txt_en=d+' days';
+const elEs=document.getElementById('days-left-es');
+const elEn=document.getElementById('days-left-en');
+if(elEs) elEs.textContent=txt_es;
+if(elEn) elEn.textContent=txt_en;
+</script>
+</body>
+</html>
