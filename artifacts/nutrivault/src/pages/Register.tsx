@@ -40,14 +40,16 @@ export default function Register() {
       }
 
       if (data.session) {
-        const { error: upsertError } = await supabase.from("usuarios").upsert({
-          id: data.user.id,
-          nombre,
-          email,
-        });
-        if (upsertError) {
-          console.warn("Profile upsert failed (trigger may handle it):", upsertError.message);
-        }
+        await Promise.allSettled([
+          supabase.from("usuarios").upsert({ id: data.user.id, nombre, email }),
+          supabase.from("profiles").upsert({
+            id: data.user.id,
+            name: nombre,
+            email,
+            plan: "trial",
+            trial_start: new Date().toISOString(),
+          }),
+        ]);
       }
 
       setSuccess(true);
