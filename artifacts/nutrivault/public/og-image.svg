@@ -1,0 +1,18 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#080808"/>
+  <ellipse cx="600" cy="-60" rx="700" ry="400" fill="#0f3320" opacity="0.7"/>
+  <rect x="0" y="0" width="6" height="630" fill="#3ddc84"/>
+  <rect x="60" y="48" width="180" height="32" rx="2" fill="#3ddc84"/>
+  <text x="150" y="69" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="2" fill="#080808">NUTRIVAULT</text>
+  <text x="60" y="195" font-family="Impact, sans-serif" font-size="112" fill="#f4f4ef">PARA DE</text>
+  <text x="60" y="320" font-family="Impact, sans-serif" font-size="112" fill="#3ddc84">ADIVINAR.</text>
+  <text x="60" y="440" font-family="Impact, sans-serif" font-size="112" fill="#f4f4ef">EMPIEZA A</text>
+  <text x="60" y="560" font-family="Impact, sans-serif" font-size="112" fill="#3ddc84">GANAR.</text>
+  <text x="820" y="230" font-family="Arial, sans-serif" font-size="18" fill="#777">TU COACH DE NUTRICIÓN PERSONAL</text>
+  <text x="820" y="260" font-family="Arial, sans-serif" font-size="18" fill="#777">CON INTELIGENCIA ARTIFICIAL</text>
+  <text x="820" y="340" font-family="Arial, sans-serif" font-size="15" fill="#555">✓  14 días gratis</text>
+  <text x="820" y="370" font-family="Arial, sans-serif" font-size="15" fill="#555">✓  Sin tarjeta de crédito</text>
+  <text x="820" y="400" font-family="Arial, sans-serif" font-size="15" fill="#555">✓  Garantía 30 días</text>
+  <rect x="820" y="450" width="280" height="58" rx="4" fill="#3ddc84"/>
+  <text x="960" y="485" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#080808">nutrivault.health</text>
+</svg>
