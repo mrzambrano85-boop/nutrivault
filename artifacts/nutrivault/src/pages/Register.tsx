@@ -34,16 +34,30 @@ export default function Register() {
         return;
       }
 
-      if (data.user) {
-        await supabase.from("usuarios").upsert({
+      if (!data.user) {
+        setError("No se pudo crear la cuenta. Intenta de nuevo.");
+        return;
+      }
+
+      if (data.session) {
+        const { error: upsertError } = await supabase.from("usuarios").upsert({
           id: data.user.id,
           nombre,
           email,
         });
+        if (upsertError) {
+          console.warn("Profile upsert failed (trigger may handle it):", upsertError.message);
+        }
       }
 
       setSuccess(true);
-      setTimeout(() => setLocation("/"), 2000);
+
+      if (data.session) {
+        setTimeout(() => setLocation("/"), 1500);
+      }
+    } catch (err) {
+      setError("Error inesperado. Intenta de nuevo.");
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -74,7 +88,9 @@ export default function Register() {
                   <Leaf className="h-6 w-6 text-primary" />
                 </div>
                 <p className="font-medium text-foreground">Cuenta creada exitosamente</p>
-                <p className="text-sm text-muted-foreground">Redirigiendo al inicio...</p>
+                <p className="text-sm text-muted-foreground">
+                  {`Revisa tu correo ${email} para confirmar tu cuenta.`}
+                </p>
               </div>
             ) : (
               <form onSubmit={handleRegister} className="space-y-4">
