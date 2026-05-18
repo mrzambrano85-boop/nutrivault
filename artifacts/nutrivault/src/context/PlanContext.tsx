@@ -22,6 +22,8 @@ const PlanContext = createContext<PlanContextType>({
   refreshPlan: async () => {},
 });
 
+const TRIAL_DAYS = 14;
+
 export function PlanProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [plan, setPlan] = useState<Plan>("free");
@@ -30,9 +32,10 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
 
   const fetchPlan = useCallback(async (userId: string) => {
     if (!supabase) { setLoadingPlan(false); return; }
+
     const { data } = await supabase
-      .from("usuarios")
-      .select("plan, plan_expira_en")
+      .from("profiles")
+      .select("plan, trial_start")
       .eq("id", userId)
       .single();
 
@@ -43,14 +46,14 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     if (rawPlan === "premium") {
       setPlan("premium");
       setTrialDaysLeft(0);
-    } else if (rawPlan === "trial" && data.plan_expira_en) {
-      const expira = new Date(data.plan_expira_en);
-      const ahora = new Date();
-      const diffMs = expira.getTime() - ahora.getTime();
-      const diasRestantes = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
-      if (diasRestantes > 0) {
+    } else if (rawPlan === "trial" && data.trial_start) {
+      const start = new Date(data.trial_start);
+      const now = new Date();
+      const daysSinceStart = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      const daysLeft = Math.max(0, TRIAL_DAYS - daysSinceStart);
+      if (daysLeft > 0) {
         setPlan("trial");
-        setTrialDaysLeft(diasRestantes);
+        setTrialDaysLeft(daysLeft);
       } else {
         setPlan("free");
         setTrialDaysLeft(0);
@@ -76,7 +79,7 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
       const upgradePlan = async () => {
         if (!supabase) return;
         await supabase
-          .from("usuarios")
+          .from("profiles")
           .update({ plan: "premium" })
           .eq("id", user.id);
         const url = new URL(window.location.href);
