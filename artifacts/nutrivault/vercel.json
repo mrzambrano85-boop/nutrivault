@@ -2,8 +2,8 @@
   "outputDirectory": "dist",
   "routes": [
     { "src": "^/$", "dest": "/landing.html" },
-    { "src": "^/app$", "dest": "/index.html" },
-    { "src": "^/app/(.*)$", "dest": "/index.html" },
+    { "src": "^/app/assets/(.*)$", "dest": "/assets/$1" },
+    { "src": "^/app(/.*)?$", "dest": "/index.html" },
     { "handle": "filesystem" }
   ]
 }
