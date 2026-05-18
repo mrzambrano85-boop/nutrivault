@@ -1,31 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
-const rawUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const supabaseUrl = "https://ivpmluwgviyznfupitcn.supabase.co";
+const supabaseAnonKey =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2cG1sdXdndml5em5mdXBpdGNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNjM5NzQsImV4cCI6MjA5MzkzOTk3NH0.7kPQxtxPHF-CpRc6RbX7BoUQ4U8DDIO5MsSIE6h5h3g";
 
-// Sanitize: trim whitespace, strip trailing slashes and any extra path segments
-// The secret was stored as https://xxx.supabase.co/rest/v1 — we only want the origin
-function sanitizeUrl(url: string | undefined): string | undefined {
-  if (!url) return undefined;
-  const trimmed = url.trim();
-  try {
-    const parsed = new URL(trimmed);
-    // Return only origin (scheme + host + port), no path
-    return parsed.origin;
-  } catch {
-    return undefined;
-  }
-}
-
-const supabaseUrl = sanitizeUrl(rawUrl);
-const supabaseAnonKey = rawKey?.trim();
-
-console.log("[NutriVault] Supabase URL (sanitized):", supabaseUrl ?? "(not set)");
-console.log("[NutriVault] Supabase Key set:", !!supabaseAnonKey);
-
-export const supabase =
-  supabaseUrl && supabaseAnonKey
-    ? createClient(supabaseUrl, supabaseAnonKey)
-    : null;
-
-export const isSupabaseReady = !!supabase;
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const isSupabaseReady = true;
