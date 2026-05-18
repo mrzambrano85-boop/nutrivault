@@ -1,6 +1,9 @@
 {
   "outputDirectory": "dist",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+  "routes": [
+    { "src": "^/$", "dest": "/landing.html" },
+    { "src": "^/app$", "dest": "/index.html" },
+    { "src": "^/app/(.*)$", "dest": "/index.html" },
+    { "handle": "filesystem" }
   ]
 }
