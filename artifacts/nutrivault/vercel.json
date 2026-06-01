@@ -1,13 +1,8 @@
 {
   "outputDirectory": "dist",
-  "functions": {
-    "api/*.ts": { "runtime": "nodejs22.x" }
-  },
   "rewrites": [
     { "source": "/app/assets/(.*)", "destination": "/assets/$1" },
     { "source": "/app/(.*)", "destination": "/index.html" },
     { "source": "/app", "destination": "/index.html" }
-  ],
-  "redirects": [],
-  "headers": []
+  ]
 }
