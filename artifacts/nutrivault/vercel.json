@@ -3,11 +3,11 @@
   "functions": {
     "api/*.ts": { "runtime": "nodejs22.x" }
   },
-  "routes": [
-    { "src": "^/api/(.*)", "dest": "/api/$1" },
-    { "src": "^/$", "dest": "/landing.html" },
-    { "src": "^/app/assets/(.*)$", "dest": "/assets/$1" },
-    { "src": "^/app(/.*)?$", "dest": "/index.html" },
-    { "handle": "filesystem" }
-  ]
+  "rewrites": [
+    { "source": "/app/assets/(.*)", "destination": "/assets/$1" },
+    { "source": "/app/(.*)", "destination": "/index.html" },
+    { "source": "/app", "destination": "/index.html" }
+  ],
+  "redirects": [],
+  "headers": []
 }
