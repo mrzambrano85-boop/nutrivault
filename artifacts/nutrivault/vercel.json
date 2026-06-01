@@ -1,6 +1,10 @@
 {
   "outputDirectory": "dist",
+  "functions": {
+    "api/*.ts": { "runtime": "nodejs22.x" }
+  },
   "routes": [
+    { "src": "^/api/(.*)", "dest": "/api/$1" },
     { "src": "^/$", "dest": "/landing.html" },
     { "src": "^/app/assets/(.*)$", "dest": "/assets/$1" },
     { "src": "^/app(/.*)?$", "dest": "/index.html" },
